@@ -1,0 +1,19 @@
+excluded:
+  - .build
+opt_in_rules:
+  - all
+disabled_rules:
+  - contrasted_opening_brace
+  - one_declaration_per_file
+  - multiline_parameters_brackets
+  - multiline_arguments_brackets
+  - indentation_width
+  - explicit_type_interface
+  - sorted_enum_cases
+  - prefixed_toplevel_constant
+  - no_magic_numbers
+  - file_types_order
+  - file_name
+  - extension_access_modifier
+  - type_contents_order
+  - required_deinit

@@ -1,0 +1,33 @@
+// swift-tools-version: 6.0
+
+import PackageDescription
+
+/// SFrame Package Description.
+public let package = Package(
+    name: "swift-sframe",
+    platforms: [
+        .macOS(.v12)
+    ],
+    products: [
+        .library(
+            name: "SFrame",
+            targets: ["SFrame"])
+    ],
+    dependencies: [
+        .package(url: "https://github.com/SimplyDanny/SwiftLintPlugins", from: "0.58.2")
+    ],
+    targets: [
+        .target(
+            name: "SFrame",
+            plugins: [
+                .plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")
+            ]),
+        .testTarget(
+            name: "SFrameTests",
+            dependencies: ["SFrame"],
+            resources: [.process("rfc_vectors.json")],
+            plugins: [
+                .plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")
+            ])
+    ]
+)
