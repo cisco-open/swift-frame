@@ -1,4 +1,4 @@
-import CryptoKit
+import Crypto
 import Foundation
 
 /// SFrame cipher suite identifier type.
@@ -110,7 +110,7 @@ extension SymmetricKey {
 /// Represents a cipher suite.
 public struct CipherSuite: Sendable {
     // SFrame Cipher Suite Registry Identifier.
-    public let identifier: UInt32
+    public let identifier: CipherSuiteIdentifier
     /// Size of the hash function output.
     public let nh: Int
     /// Compound AEAD key size, if applicable.
@@ -124,7 +124,7 @@ public struct CipherSuite: Sendable {
 }
 
 /// SFrame cipher suites by registered identifier.
-public enum CipherSuites: UInt32, Sendable {
+public enum CipherSuites: CipherSuiteIdentifier, Sendable {
     case aes_128_ctr_hmac_sha256_80 = 1
     case aes_128_ctr_hmac_sha256_64 = 2
     case aes_128_ctr_hmac_sha256_32 = 3
@@ -171,7 +171,7 @@ public class Context: SFrame {
         self.keys[keyId] = ReceiveKeyContext(key: derived.key, salt: derived.salt)
     }
 
-    private func formNonce(counter: UInt64, salt: some ContiguousBytes) throws -> Data {
+    private func formNonce(counter: Counter, salt: some ContiguousBytes) throws -> Data {
         var nonce = try Data(contiguousNoCopy: salt)
         withUnsafeBytes(of: counter.bigEndian) { counterBytes in
             zip(counterBytes, nonce.indices.suffix(MemoryLayout<UInt64>.size))

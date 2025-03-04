@@ -1,31 +1,31 @@
-import CryptoKit
+import Crypto
 import Foundation
 
-public enum CryptoKitProviderFactoryError: Error {
+public enum SwiftCryptoProviderFactoryError: Error {
     case unsupportedCipherSuite
 }
 
-/// Provides CryptoKit functionality for a cipher suite.
-public struct CryptoKitProviderFactory {
-    /// Create a CryptoKit SFrame provider for the given cipher suite.
+/// Provides SwiftCrypto functionality for a cipher suite.
+public struct SwiftCryptoProviderFactory {
+    /// Create a SwiftCrypto SFrame provider for the given cipher suite.
     /// - Parameter suite: The cipher suite to use.
-    /// - Returns: A CryptoKit SFrame provider.
+    /// - Returns: A SwiftCrypto SFrame provider.
     public func create(suite: CipherSuite) throws -> any CryptoProvider {
         let sframeDeclared = CipherSuites(rawValue: suite.identifier)
         guard let sframeDeclared else {
-            throw CryptoKitProviderFactoryError.unsupportedCipherSuite
+            throw SwiftCryptoProviderFactoryError.unsupportedCipherSuite
         }
         switch sframeDeclared {
         case .aes_128_ctr_hmac_sha256_32,
                 .aes_128_ctr_hmac_sha256_64,
                 .aes_128_ctr_hmac_sha256_80:
-            throw CryptoKitProviderFactoryError.unsupportedCipherSuite
+            throw SwiftCryptoProviderFactoryError.unsupportedCipherSuite
 
         case .aes_128_gcm_sha256_128:
-            return CryptoKitProvider<SHA256>(suite: suite)
+            return SwiftCryptoProvider<SHA256>(suite: suite)
 
         case .aes_256_gcm_sha512_128:
-            return CryptoKitProvider<SHA512>(suite: suite)
+            return SwiftCryptoProvider<SHA512>(suite: suite)
         }
     }
 }
@@ -40,7 +40,7 @@ extension AES.GCM.SealedBox: SealedBox {
     }
 }
 
-public struct CryptoKitProvider<Hash: HashFunction>: CryptoProvider {
+public struct SwiftCryptoProvider<Hash: HashFunction>: CryptoProvider {
     public let suite: CipherSuite
 
     public func seal(plainText: Data, using: SymmetricKey, nonce: Data, authenticating: Data) throws -> any SealedBox {

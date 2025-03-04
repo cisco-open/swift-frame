@@ -1,4 +1,4 @@
-import CryptoKit
+import Crypto
 import Foundation
 @testable import SFrame
 import Testing
@@ -6,7 +6,7 @@ import Testing
 @Test("Missing KID Throws")
 internal func testEncryptBadKid() throws {
     let suite = registry[.aes_128_ctr_hmac_sha256_32]! // swiftlint:disable:this force_unwrapping
-    let provider = CryptoKitProvider<SHA256>(suite: suite)
+    let provider = SwiftCryptoProvider<SHA256>(suite: suite)
     let sframe = Context(provider: provider)
     #expect(performing: {
         try sframe.encrypt(0, metadata: nil, plaintext: .init())
@@ -15,7 +15,7 @@ internal func testEncryptBadKid() throws {
 
 private func makeSFrame(_ suite: UInt32) -> SFrame? {
     // Prepare.
-    let factory = CryptoKitProviderFactory()
+    let factory = SwiftCryptoProviderFactory()
     var provider: (any CryptoProvider)?
     withKnownIssue("Unsupported Cipher Suite: \(suite)", isIntermittent: true) {
         guard let supported = CipherSuites(rawValue: suite),
