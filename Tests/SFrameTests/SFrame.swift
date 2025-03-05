@@ -37,7 +37,7 @@ private struct SFrameVectorTests {
 }
 
 private struct SFrameTests {
-    @Test("Throw on missing key")
+    @Test("Key Misuse - Missing")
     private func testEncryptBadKid() throws {
         let suite = registry[.aes_128_ctr_hmac_sha256_32]! // swiftlint:disable:this force_unwrapping
         let provider = SwiftCryptoProvider(suite: suite)
@@ -47,7 +47,19 @@ private struct SFrameTests {
         }, throws: { $0 as? SFrameError == SFrameError.invalidKeyId })
     }
 
-    @Test("Throw on key misuse - Encrypt with decrypt")
+    @Test("Key Misuse - Existing")
+    private func testExistingKey() throws {
+        let suite = registry[.aes_128_ctr_hmac_sha256_32]! // swiftlint:disable:this force_unwrapping
+        let provider = SwiftCryptoProvider(suite: suite)
+        let sframe = Context(provider: provider)
+        let keyId: KeyId = 1
+        try sframe.addKey(keyId, key: .init(size: .bits128), usage: .encrypt)
+        #expect(performing: {
+            try sframe.addKey(keyId, key: .init(size: .bits128), usage: .encrypt)
+        }, throws: { $0 as? SFrameError == SFrameError.invalidKeyId })
+    }
+
+    @Test("Key Misuse - Encrypt with decrypt")
     private func testEncryptWithDecryptKey() throws {
         let suite = registry[.aes_128_ctr_hmac_sha256_32]! // swiftlint:disable:this force_unwrapping
         let provider = SwiftCryptoProvider(suite: suite)
@@ -59,7 +71,7 @@ private struct SFrameTests {
         }, throws: { $0 as? SFrameError == SFrameError.invalidKeyId })
     }
 
-    @Test("Throw on key misuse - Decrypt with encrypt")
+    @Test("Key Misuse - Decrypt with encrypt")
     private func testDecryptWithEncryptKey() throws {
         let suite = registry[.aes_128_ctr_hmac_sha256_32]! // swiftlint:disable:this force_unwrapping
         let provider = SwiftCryptoProvider(suite: suite)

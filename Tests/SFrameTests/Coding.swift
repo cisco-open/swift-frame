@@ -21,6 +21,21 @@ private struct CodingTests {
         #expect(decoded == header)
     }
 
+    @Test("Bad Header")
+    private func testBadHeader() {
+        let data = Data()
+        var read = 0
+        #expect(throws: SFrameError.malformedCipherText) {
+            try Header(from: data, read: &read)
+        }
+
+        let badData = Data([0xFF])
+        read = 0
+        #expect(throws: SFrameError.malformedCipherText) {
+            try Header(from: badData, read: &read)
+        }
+    }
+
     @Test("CipherText")
     private func testCipherTextCoding() throws {
         // Make an example CipherText.

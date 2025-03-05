@@ -9,9 +9,9 @@ public typealias KeyId = UInt64
 public typealias Counter = UInt64
 
 public enum SFrameError: Error {
-    case badLabel
     case invalidKeyId
     case badParameter
+    case malformedCipherText
 }
 
 /// The operation this key is to be used for.

@@ -105,9 +105,7 @@ public class Context: SFrame {
 
     private func formNonce(counter: Counter, salt: some ContiguousBytes) throws -> Data {
         let nonce = Data(contiguousNoCopy: salt)
-        guard nonce.count == self.crypto.suite.nn else {
-            throw SFrameError.badParameter
-        }
+        precondition(nonce.count == self.crypto.suite.nn)
         var counterData = Data(count: self.crypto.suite.nn)
         withUnsafeBytes(of: counter.bigEndian) { bytes in
             let size = MemoryLayout<Counter>.size

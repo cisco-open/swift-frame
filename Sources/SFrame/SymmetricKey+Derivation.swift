@@ -16,19 +16,17 @@ extension SymmetricKey {
         let secret = try SymmetricKey(data: provider.hkdfExtract(inputKeyMaterial: self, salt: .none))
 
         // Derive Key.
-        let keyLabel = try self.buildKeyLabel(Self.keyLabelPrefix, keyId: keyId, cipherSuite: provider.suite)
+        let keyLabel = self.buildKeyLabel(Self.keyLabelPrefix, keyId: keyId, cipherSuite: provider.suite)
         let key = try provider.hkdfExpand(pseudoRandomKey: secret, info: keyLabel, outputByteCount: provider.suite.nk)
 
         // Derive Salt.
-        let saltLabel = try self.buildKeyLabel(Self.saltLabelPrefix, keyId: keyId, cipherSuite: provider.suite)
+        let saltLabel = self.buildKeyLabel(Self.saltLabelPrefix, keyId: keyId, cipherSuite: provider.suite)
         let salt = try provider.hkdfExpand(pseudoRandomKey: secret, info: saltLabel, outputByteCount: provider.suite.nn)
         return (key: key, salt: salt)
     }
 
-    private func buildKeyLabel(_ label: String, keyId: KeyId, cipherSuite: CipherSuite) throws -> Data {
-        guard var data = label.data(using: .utf8) else {
-            throw SFrameError.badLabel
-        }
+    private func buildKeyLabel(_ label: String, keyId: KeyId, cipherSuite: CipherSuite) -> Data {
+        var data = Data(label.utf8)
         data.append(Swift.withUnsafeBytes(of: keyId.bigEndian) { Data($0) })
         data.append(Swift.withUnsafeBytes(of: UInt16(cipherSuite.identifier).bigEndian) { Data($0) })
         return data

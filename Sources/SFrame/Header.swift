@@ -20,10 +20,8 @@ internal struct Header {
     /// - Parameter read: The running offset read from data, in bytes.
     internal init(from data: Data, read: inout Int) throws {
         guard let configByte = data.first else {
-            throw DecodingError.dataCorrupted(.init(codingPath: [],
-                                                    debugDescription: "Data was empty"))
+            throw SFrameError.malformedCipherText
         }
-
         read += 1
 
         // Parse config byte
@@ -33,12 +31,15 @@ internal struct Header {
         // Decode KID
         if hasExtendedKID {
             let kidLength = Int((configByte >> 4) & 0b111) + 1
+            guard data.count >= read + kidLength else {
+                throw SFrameError.malformedCipherText
+            }
             var kidBytes = [UInt8]()
             for _ in 0..<kidLength {
                 kidBytes.append(data[read])
                 read += 1
             }
-            self.keyId = try Self.decodeInteger(from: kidBytes)
+            self.keyId = Self.decodeInteger(from: kidBytes)
         } else {
             self.keyId = UInt64((configByte >> 4) & 0b111)
         }
@@ -46,18 +47,21 @@ internal struct Header {
         // Decode CTR
         if hasExtendedCTR {
             let ctrLength = Int(configByte & 0b111) + 1
+            guard data.count >= read + ctrLength else {
+                throw SFrameError.malformedCipherText
+            }
             var ctrBytes = [UInt8]()
             for _ in 0..<ctrLength {
                 ctrBytes.append(data[read])
                 read += 1
             }
-            self.counter = try Self.decodeInteger(from: ctrBytes)
+            self.counter = Self.decodeInteger(from: ctrBytes)
         } else {
             self.counter = UInt64(configByte & 0b111)
         }
     }
 
-    private static func decodeInteger(from bytes: [UInt8]) throws -> UInt64 {
+    private static func decodeInteger(from bytes: [UInt8]) -> UInt64 {
         var value: UInt64 = 0
         for byte in bytes {
             value = (value << 8) | UInt64(byte)
@@ -78,10 +82,7 @@ internal struct Header {
         if needExtendedKID {
             configByte |= 0b10000000 // Set X flag
             let kidBytes = self.minimalBytes(for: self.keyId)
-            guard kidBytes.count <= 8 else {
-                throw EncodingError.invalidValue(self.keyId,
-                                                 .init(codingPath: [], debugDescription: "KID too large"))
-            }
+            precondition(kidBytes.count <= 8)
             configByte |= UInt8(kidBytes.count - 1) << 4 // Set K field
         } else {
             configByte |= UInt8(self.keyId) << 4 // Set K field directly
@@ -90,9 +91,7 @@ internal struct Header {
         if needExtendedCTR {
             configByte |= 0b00001000 // Set Y flag
             let ctrBytes = self.minimalBytes(for: self.counter)
-            guard ctrBytes.count <= 8 else {
-                throw EncodingError.invalidValue(self.counter, .init(codingPath: [], debugDescription: "CTR too large"))
-            }
+            precondition(ctrBytes.count <= 8)
             configByte |= UInt8(ctrBytes.count - 1) // Set C field
         } else {
             configByte |= UInt8(self.counter) // Set C field directly
@@ -112,6 +111,7 @@ internal struct Header {
     }
 
     private func minimalBytes(for value: UInt64) -> [UInt8] {
+        precondition(value > Self.maxSmallValue)
         var bytes = withUnsafeBytes(of: value.bigEndian) { Array($0) }
         while bytes.first == 0 && bytes.count > 1 {
             bytes.removeFirst()

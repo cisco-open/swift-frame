@@ -90,15 +90,10 @@ public struct SwiftCryptoProvider: CryptoProvider {
     public func hmac(key: SymmetricKey, data: Data) throws -> Data {
         switch self.suite.identifier {
             // SHA256.
-        case CipherSuites.aes_128_gcm_sha256_128.rawValue,
-            CipherSuites.aes_128_ctr_hmac_sha256_32.rawValue,
+        case CipherSuites.aes_128_ctr_hmac_sha256_32.rawValue,
             CipherSuites.aes_128_ctr_hmac_sha256_64.rawValue,
             CipherSuites.aes_128_ctr_hmac_sha256_80.rawValue:
                 .init(HMAC<SHA256>.authenticationCode(for: data, using: key))
-
-            // SHA512.
-        case CipherSuites.aes_256_gcm_sha512_128.rawValue:
-                .init(HMAC<SHA512>.authenticationCode(for: data, using: key))
 
         default:
             throw CryptoProviderError.unsupportedCipherSuite

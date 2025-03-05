@@ -203,3 +203,14 @@ private struct EncodeBigEndianTests {
         #expect(u32 == decoded)
     }
 }
+
+private struct TestDataExtensions {
+    @Test("XOR Length")
+    private func testXORLength() {
+        let lhs = Data([1, 2, 3])
+        let rhs = Data([4, 5, 6, 7])
+        #expect(performing: {
+            _ = try lhs ^ rhs
+        }, throws: { $0 as? DataError == DataError.lengthMismatch })
+    }
+}

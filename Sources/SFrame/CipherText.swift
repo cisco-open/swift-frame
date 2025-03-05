@@ -22,6 +22,9 @@ internal struct CipherText {
     ///  - read: The running offset read from data, in bytes.
     internal init(tagLength: Int, from data: Data, read: inout Int) throws {
         self.header = try .init(from: data, read: &read)
+        guard data.count - read >= tagLength else {
+            throw SFrameError.malformedCipherText
+        }
         self.encrypted = data[read..<(data.count - tagLength)]
         read += self.encrypted.count
         self.authenticationTag = data[read..<data.count]
