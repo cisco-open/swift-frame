@@ -15,12 +15,15 @@ public let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/SimplyDanny/SwiftLintPlugins", from: "0.58.2"),
-        .package(url: "https://github.com/apple/swift-crypto.git", "1.0.0" ..< "4.0.0"),
+        .package(url: "https://github.com/apple/swift-crypto.git", "1.0.0" ..< "4.0.0")
     ],
     targets: [
         .target(
             name: "SFrame",
-            dependencies: [.product(name: "Crypto", package: "swift-crypto")],
+            dependencies: [
+                .product(name: "Crypto", package: "swift-crypto"),
+                .product(name: "_CryptoExtras", package: "swift-crypto")
+            ],
             plugins: [
                 .plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")
             ]),

@@ -1,77 +1,81 @@
 import Foundation
-import SFrame
+@testable import SFrame
+import Testing
 
 internal enum Fixtures {
     internal static let testVectors = try! loadTestVectors() // swiftlint:disable:this force_try
 }
 
-internal struct TestVectors: Decodable {
-    internal let headers: [SerializedHeader]
-    internal let sframe: [SFrameVector]
-}
-
 internal struct SerializedHeader: Decodable, CustomStringConvertible {
+    private enum CodingKeys: CodingKey {
+        case kid
+        case ctr
+        case encoded
+    }
+
     internal var description: String {
-        "kid(\(self.kid)) ctr(\(self.ctr))"
+        "Header Vector: kid: \(self.kid)), ctr: \(self.ctr)"
     }
 
     internal let kid: KeyId
     internal let ctr: Counter
-    internal let header: Data
-
-    private enum CodingKeys: CodingKey {
-        case kid
-        case ctr
-        case header
-    }
+    internal let encoded: Data
 
     internal init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        let kid = try container.decode(String.self, forKey: .kid)
-        self.kid = parseHex(kid)
-        let counter = try container.decode(String.self, forKey: .ctr)
-        self.ctr = parseHex(counter)
-        let header = try container.decode(String.self, forKey: .header)
-        self.header = hexToData(header)
+        self.kid = try container.decode(KeyId.self, forKey: .kid)
+        self.ctr = try container.decode(KeyId.self, forKey: .ctr)
+        let encoded = try container.decode(String.self, forKey: .encoded)
+        self.encoded = hexToData(encoded)
     }
 }
 
-internal struct SerializedCryptoVector: Decodable {
-    internal let cipherSuite: String
-    internal let key: String
-    internal let encKey: String
-    internal let authKey: String
-    internal let nonce: String
-    internal let aad: String
-    internal let plainText: String
-    internal let cipherText: String
-
+internal struct CryptoVector: Decodable, CustomStringConvertible {
     private enum CodingKeys: String, CodingKey {
         case encKey = "enc_key"
         case authKey = "auth_key"
         case plainText = "pt"
         case cipherText = "ct"
-        case cipherSuite = "cipherSuite"
+        case cipherSuite = "cipher_suite"
         case key = "key"
         case nonce = "nonce"
         case aad = "aad"
     }
-}
 
-internal struct SFrameVector: Decodable {
+    internal var description: String {
+        "AES CTR HMAC SHA256 Vector: \(self.cipherSuite)"
+    }
+
     internal let cipherSuite: CipherSuiteIdentifier
-    internal let kid: KeyId
-    internal let ctr: Counter
-    internal let baseKey: Data
-    internal let sframeKeyLabel: Data
-    internal let sframeSaltLabel: Data
-    internal let sframeSecret: Data
-    internal let sframeKey: Data
-    internal let sframeSalt: Data
-    internal let metadata: Data
+    internal let key: Data
+    internal let encKey: Data
+    internal let authKey: Data
+    internal let nonce: Data
+    internal let aad: Data
     internal let plainText: Data
     internal let cipherText: Data
 
+    internal init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let encKey = try container.decode(String.self, forKey: .encKey)
+        self.encKey = hexToData(encKey)
+        let authKey = try container.decode(String.self, forKey: .authKey)
+        self.authKey = hexToData(authKey)
+        let plainText = try container.decode(String.self, forKey: .plainText)
+        self.plainText = hexToData(plainText)
+        let cipherText = try container.decode(String.self, forKey: .cipherText)
+        self.cipherText = hexToData(cipherText)
+        self.cipherSuite = try container.decode(CipherSuiteIdentifier.self, forKey: .cipherSuite)
+        let key = try container.decode(String.self, forKey: .key)
+        self.key = hexToData(key)
+        let nonce = try container.decode(String.self, forKey: .nonce)
+        self.nonce = hexToData(nonce)
+        let aad = try container.decode(String.self, forKey: .aad)
+        self.aad = hexToData(aad)
+    }
+}
+
+internal struct SFrameVector: Decodable, CustomStringConvertible { // swiftlint:disable:this file_types_order
     private enum CodingKeys: String, CodingKey {
         case cipherSuite = "cipher_suite"
         case baseKey = "base_key"
@@ -87,10 +91,26 @@ internal struct SFrameVector: Decodable {
         case metadata = "metadata"
     }
 
+    internal var description: String {
+        "SFrame Vector: \(self.cipherSuite)"
+    }
+
+    internal let cipherSuite: CipherSuiteIdentifier
+    internal let kid: KeyId
+    internal let ctr: Counter
+    internal let baseKey: Data
+    internal let sframeKeyLabel: Data
+    internal let sframeSaltLabel: Data
+    internal let sframeSecret: Data
+    internal let sframeKey: Data
+    internal let sframeSalt: Data
+    internal let metadata: Data
+    internal let plainText: Data
+    internal let cipherText: Data
+
     internal init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        let cipherSuite = try container.decode(String.self, forKey: .cipherSuite)
-        self.cipherSuite = UInt32(parseHex(cipherSuite))
+        self.cipherSuite = try container.decode(CipherSuiteIdentifier.self, forKey: .cipherSuite)
         let baseKey = try container.decode(String.self, forKey: .baseKey)
         self.baseKey = hexToData(baseKey)
         let sframeKeyLabel = try container.decode(String.self, forKey: .sframeKeyLabel)
@@ -109,11 +129,21 @@ internal struct SFrameVector: Decodable {
         self.plainText = hexToData(plainText)
         let cipherText = try container.decode(String.self, forKey: .cipherText)
         self.cipherText = hexToData(cipherText)
-        let kid = try container.decode(String.self, forKey: .kid)
-        self.kid = KeyId(parseHex(kid))
-        let ctr = try container.decode(String.self, forKey: .ctr)
-        self.ctr = Counter(parseHex(ctr))
+        self.kid = try container.decode(KeyId.self, forKey: .kid)
+        self.ctr = try container.decode(Counter.self, forKey: .ctr)
     }
+}
+
+internal struct TestVectors: Decodable {
+    private enum CodingKeys: String, CodingKey {
+        case header = "header"
+        case crypto = "aes_ctr_hmac"
+        case sframe = "sframe"
+    }
+
+    internal let header: [SerializedHeader]
+    internal let crypto: [CryptoVector]
+    internal let sframe: [SFrameVector]
 }
 
 internal func parseHex(_ hex: String) -> UInt64 {
@@ -141,6 +171,7 @@ internal func hexToData(_ hex: String) -> Data {
 
 internal enum TestError: Error {
     case missingVectors
+    case unsupportedCipherSuite
 }
 
 internal func loadTestVectors() throws -> TestVectors {
@@ -149,4 +180,26 @@ internal func loadTestVectors() throws -> TestVectors {
     }
     let file = try Data(contentsOf: vectorsUrl)
     return try JSONDecoder().decode(TestVectors.self, from: file)
+}
+
+private struct EncodeBigEndianTests {
+    @Test("Encode Big Endian - No Padding")
+    private func testEncodeBigEndianNoPadding() {
+        let u64: UInt64 = 12_345
+        let size = MemoryLayout<UInt64>.size
+        var matching = Data(capacity: size)
+        u64.encodeBigEndian(size, into: &matching)
+        let decoded = matching.withUnsafeBytes { $0.load(as: UInt64.self) }.bigEndian
+        #expect(u64 == decoded)
+    }
+
+    @Test("Encode Big Endian - Padding")
+    private func testEncodeBigEndian() {
+        let u32: UInt32 = 12_345
+        let size = MemoryLayout<UInt64>.size
+        var matching = Data(capacity: size)
+        u32.encodeBigEndian(size, into: &matching)
+        let decoded = matching.withUnsafeBytes { $0.load(as: UInt64.self) }.bigEndian
+        #expect(u32 == decoded)
+    }
 }

@@ -1,36 +1,24 @@
 import Foundation
 
-extension CipherText {
-    /// Decode an SFrame CipherText from its wire format.
-    /// - Parameters:
-    ///  - tagLength: The length of the authentication tag.
-    ///  - data: The encoded data.
-    ///  - read: The running offset read from data, in bytes.
-    public init(tagLength: Int, from data: Data, read: inout Int) throws {
-        self.header = try .init(from: data, read: &read)
-        self.encrypted = data[read..<(data.count - tagLength)]
-        read += self.encrypted.count
-        self.authenticationTag = data[read..<data.count]
-        read += self.authenticationTag.count
-    }
-
-    /// Encode the SFrame CipherText into its wire format.
-    /// - Parameter data: The data to encode into.
-    public func encode(into data: inout Data) throws {
-        try self.header.encode(into: &data)
-        data.append(self.encrypted)
-        data.append(self.authenticationTag)
-    }
-}
-
-extension Header {
+/// SFrame Header.
+internal struct Header {
     /// Max 3-bit value.
     private static let maxSmallValue: UInt64 = 7
+
+    /// ID for the key in use.
+    internal let keyId: KeyId
+    /// Counter value used in this message.
+    internal let counter: Counter
+
+    internal init(keyId: KeyId, counter: Counter) {
+        self.keyId = keyId
+        self.counter = counter
+    }
 
     /// Decode an SFrame header from its encoded wire format.
     /// - Parameter data: The encoded data.
     /// - Parameter read: The running offset read from data, in bytes.
-    public init(from data: Data, read: inout Int) throws {
+    internal init(from data: Data, read: inout Int) throws {
         guard let configByte = data.first else {
             throw DecodingError.dataCorrupted(.init(codingPath: [],
                                                     debugDescription: "Data was empty"))
@@ -69,9 +57,17 @@ extension Header {
         }
     }
 
+    private static func decodeInteger(from bytes: [UInt8]) throws -> UInt64 {
+        var value: UInt64 = 0
+        for byte in bytes {
+            value = (value << 8) | UInt64(byte)
+        }
+        return value
+    }
+
     /// Encode an SFrame Header into its wire format.
     /// - Parameter data: The data to encode into.
-    public func encode(into data: inout Data) throws {
+    internal func encode(into data: inout Data) throws {
         // Determine if KID and CTR need extended encoding
         let needExtendedKID = self.keyId > Self.maxSmallValue
         let needExtendedCTR = self.counter > Self.maxSmallValue
@@ -121,13 +117,5 @@ extension Header {
             bytes.removeFirst()
         }
         return bytes
-    }
-
-    private static func decodeInteger(from bytes: [UInt8]) throws -> UInt64 {
-        var value: UInt64 = 0
-        for byte in bytes {
-            value = (value << 8) | UInt64(byte)
-        }
-        return value
     }
 }

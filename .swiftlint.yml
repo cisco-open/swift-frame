@@ -12,8 +12,6 @@ disabled_rules:
   - sorted_enum_cases
   - prefixed_toplevel_constant
   - no_magic_numbers
-  - file_types_order
   - file_name
   - extension_access_modifier
-  - type_contents_order
   - required_deinit

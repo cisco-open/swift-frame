@@ -7,14 +7,12 @@ public protocol SealedBox {
     var authTag: Data { get }
     /// The encrypted ciphertext.
     var encrypted: Data { get }
-    /// The bytes of the nonce.
+    /// The bytes of the nonce used for this operation.
     var nonceBytes: Data { get }
 }
 
-/// A provider of cryptographic operations for SFrame.
+/// A provider of cryptographic operations potentially required by SFrame.
 public protocol CryptoProvider {
-    /// The hash function in use.
-    associatedtype Hash: CryptoKit.HashFunction
     /// The suite in use.
     var suite: CipherSuite { get }
 
@@ -22,13 +20,13 @@ public protocol CryptoProvider {
     /// - Parameter inputKeyMaterial: The base key to derive from.
     /// - Parameter salt: The salt to use.
     /// - Returns: The derived key.
-    func hkdfExtract(inputKeyMaterial: SymmetricKey, salt: Data?) -> HashedAuthenticationCode<Hash>
+    func hkdfExtract(inputKeyMaterial: SymmetricKey, salt: Data?) throws -> Data
 
     /// HKDF Expand.
     /// - Parameter pseudoRandomKey: The key to expand.
     /// - Parameter info: The shared info for derivation.
     /// - Parameter outputByteCount: The length of the derived key, in bytes.
-    func hkdfExpand(pseudoRandomKey: SymmetricKey, info: Data, outputByteCount: Int) -> SymmetricKey
+    func hkdfExpand(pseudoRandomKey: SymmetricKey, info: Data, outputByteCount: Int) throws -> SymmetricKey
 
     /// Seal a plaintext message with authenticating data.
     /// - Parameters:
@@ -46,4 +44,40 @@ public protocol CryptoProvider {
     ///   - authenticating: The data to authenticate.
     /// - Returns: The decrypted plaintext.
     func open(box: SealedBox, using: SymmetricKey, authenticating: Data) throws -> Data
+
+    /// AES CTR Encryption operation internally by SFrame's AES-CTR with SHA2 implementation.
+    /// - Parameters:
+    ///   - key: The key to use.
+    ///   - nonce: The nonce to use.
+    ///   - plainText: The plaintext to encrypt.
+    /// - Returns: The encrypted ciphertext.
+    func encryptCtr(key: SymmetricKey, nonce: Data, plainText: Data) throws -> Data
+
+    /// AES CTR Decryption operation internally by SFrame's AES-CTR with SHA2 implementation.
+    /// - Parameters:
+    ///   - key: The key to use.
+    ///   - nonce: The nonce to use.
+    ///   - cipherText: The ciphertext to decrypt.
+    /// - Returns: The decrypted plaintext.
+    func decryptCtr(key: SymmetricKey, nonce: Data, cipherText: Data) throws -> Data
+
+    /// HMAC operation.
+    /// - Parameters:
+    ///  - key: The key to use.
+    ///  - data: The data to authenticate.
+    func hmac(key: SymmetricKey, data: Data) throws -> Data
+
+    /// A cryptographic constant-time comparison.
+    /// This will return false immediately if the two values are not equal size.
+    /// - Parameters:
+    ///  - lhs: The left-hand side to compare.
+    ///  - rhs: The right-hand side to compare.
+    /// - Returns: True if the two values are equal, false otherwise.
+    func constantTimeCompare(lhs: Data, rhs: Data) throws -> Bool
+}
+
+/// Standard errors thrown by a Provider.
+public enum CryptoProviderError: Error {
+    /// This provider does not support the requested cipher suite.
+    case unsupportedCipherSuite
 }

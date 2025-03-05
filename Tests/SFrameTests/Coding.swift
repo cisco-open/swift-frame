@@ -1,6 +1,62 @@
 import Foundation
-import SFrame
+@testable import SFrame
 import Testing
+
+private struct CodingTests {
+    @Test("Header", arguments: Fixtures.testVectors.header)
+    private func testHeaderCoding(_ serialized: SerializedHeader) throws {
+        // Deserialize the kid & ctr into a header, ensure they match.
+        let header = Header(serialized: serialized)
+        #expect(header.keyId == serialized.kid)
+        #expect(header.counter == serialized.ctr)
+
+        // Encode the deserialized header, ensure it matches the serialized header bytes.
+        var encoded = Data()
+        try header.encode(into: &encoded)
+        #expect(encoded == serialized.encoded)
+
+        // Decode the serialized header, ensure it matches the constructed header.
+        var read = 0
+        let decoded = try Header(from: encoded, read: &read)
+        #expect(decoded == header)
+    }
+
+    @Test("CipherText")
+    private func testCipherTextCoding() throws {
+        // Make an example CipherText.
+        let header = Header(keyId: 1234, counter: 5678) // swiftlint:disable:this number_separator
+        let encrypted = Data([0xDE, 0xAD, 0xBE, 0xEF])
+        let tag = Data([0xBA, 0xDC, 0x0F, 0xFE])
+        let cipherText = CipherText(header: header, encrypted: encrypted, authenticationTag: tag)
+
+        // Encode it.
+        var encoded = Data()
+        try cipherText.encode(into: &encoded)
+
+        // Ensure encoded header data matches.
+        var expected = Data()
+        try header.encode(into: &expected)
+        let encodedHeader = encoded[..<expected.count]
+        #expect(encodedHeader == expected)
+
+        // Then encrypted data matches.
+        var offset = encodedHeader.count
+        let encryptedRange = encoded[offset..<offset + encrypted.count]
+        #expect(encryptedRange == encrypted)
+        offset += encrypted.count
+
+        // Then the auth tag matches.
+        let tagRange = encoded.advanced(by: offset)
+        #expect(tagRange == tag)
+
+        // And backwards.
+        var ctOffset = 0
+        let decoded = try CipherText(tagLength: tag.count, from: encoded, read: &ctOffset)
+        #expect(decoded.header == header)
+        #expect(decoded.encrypted == encrypted)
+        #expect(decoded.authenticationTag == tag)
+    }
+}
 
 extension Header {
     internal init(serialized: SerializedHeader) {
@@ -14,58 +70,4 @@ extension Header: Equatable {
     public static func == (lhs: Header, rhs: Header) -> Bool {
         lhs.keyId == rhs.keyId && lhs.counter == rhs.counter
     }
-}
-
-@Test("Header Coding", arguments: Fixtures.testVectors.headers)
-internal func testHeaderCoding(_ serialized: SerializedHeader) throws {
-    // Deserialize the kid & ctr into a header, ensure they match.
-    let header = Header(serialized: serialized)
-    #expect(header.keyId == serialized.kid)
-    #expect(header.counter == serialized.ctr)
-
-    // Encode the deserialized header, ensure it matches the serialized header bytes.
-    var encoded = Data()
-    try header.encode(into: &encoded)
-    #expect(encoded == serialized.header)
-
-    // Decode the serialized header, ensure it matches the constructed header.
-    var read = 0
-    let decoded = try Header(from: encoded, read: &read)
-    #expect(decoded == header)
-}
-
-@Test("CipherText Coding")
-internal func testCipherTextCoding() throws {
-    // Make an example CipherText.
-    let header = Header(keyId: 1234, counter: 5678) // swiftlint:disable:this number_separator
-    let encrypted = Data([0xDE, 0xAD, 0xBE, 0xEF])
-    let tag = Data([0xBA, 0xDC, 0x0F, 0xFE])
-    let cipherText = CipherText(header: header, encrypted: encrypted, authenticationTag: tag)
-
-    // Encode it.
-    var encoded = Data()
-    try cipherText.encode(into: &encoded)
-
-    // Ensure encoded header data matches.
-    var expected = Data()
-    try header.encode(into: &expected)
-    let encodedHeader = encoded[..<expected.count]
-    #expect(encodedHeader == expected)
-
-    // Then encrypted data matches.
-    var offset = encodedHeader.count
-    let encryptedRange = encoded[offset..<offset + encrypted.count]
-    #expect(encryptedRange == encrypted)
-    offset += encrypted.count
-
-    // Then the auth tag matches.
-    let tagRange = encoded.advanced(by: offset)
-    #expect(tagRange == tag)
-
-    // And backwards.
-    var ctOffset = 0
-    let decoded = try CipherText(tagLength: tag.count, from: encoded, read: &ctOffset)
-    #expect(decoded.header == header)
-    #expect(decoded.encrypted == encrypted)
-    #expect(decoded.authenticationTag == tag)
 }
