@@ -23,6 +23,7 @@ private struct ReceiveKeyContext: KeyContext {
     let salt: ContiguousBytes
 }
 
+/// SFrame Implementation.
 public class Context: SFrame {
     private var keys: [KeyId: KeyContext] = [:]
     private let crypto: any CryptoProvider
@@ -31,27 +32,22 @@ public class Context: SFrame {
         self.crypto = provider
     }
 
-    public func addSendKey(_ keyId: KeyId, key: SymmetricKey, currentCounter: Counter = 0) throws {
+    public func addKey(_ keyId: KeyId, key: SymmetricKey, usage: KeyUse) throws {
         guard self.keys[keyId] == nil else {
             throw SFrameError.invalidKeyId
         }
         let derived = try key.sframeDerive(keyId: keyId,
                                            provider: self.crypto)
-        self.keys[keyId] = SendKeyContext(key: derived.key,
-                                          salt: derived.salt,
-                                          counter: currentCounter)
-    }
+        self.keys[keyId] = switch usage {
+        case .encrypt:
+            SendKeyContext(key: derived.key, salt: derived.salt, counter: 0)
 
-    public func addReceiveKey(_ keyId: KeyId, key: SymmetricKey) throws {
-        guard self.keys[keyId] == nil else {
-            throw SFrameError.invalidKeyId
+        case .decrypt:
+            ReceiveKeyContext(key: derived.key, salt: derived.salt)
         }
-        let derived = try key.sframeDerive(keyId: keyId,
-                                           provider: self.crypto)
-        self.keys[keyId] = ReceiveKeyContext(key: derived.key, salt: derived.salt)
     }
 
-    public func encrypt(_ keyId: KeyId, metadata: Data?, plaintext: Data) throws -> Data {
+    public func encrypt(_ keyId: KeyId, plaintext: Data, metadata: Data?) throws -> Data {
         // Ensure we have a matching encryption key.
         guard let context = self.keys[keyId],
               let sendContext = context as? SendKeyContext else {
@@ -83,7 +79,7 @@ public class Context: SFrame {
         return data
     }
 
-    public func decrypt(metadata: Data, ciphertext: Data) throws -> Data {
+    public func decrypt(ciphertext: Data, metadata: Data?) throws -> Data {
         // Decode the constituant parts.
         var read = 0
         let ciphertext = try CipherText(tagLength: self.crypto.suite.nt, from: ciphertext, read: &read)
@@ -97,7 +93,9 @@ public class Context: SFrame {
         let nonce = try self.formNonce(counter: ciphertext.header.counter, salt: context.salt)
         var result = Data()
         try ciphertext.header.encode(into: &result)
-        result.append(metadata)
+        if let metadata {
+            result.append(metadata)
+        }
         let aad = result
         let sealedBox = SealedDataBox(authTag: ciphertext.authenticationTag,
                                       encrypted: ciphertext.encrypted,

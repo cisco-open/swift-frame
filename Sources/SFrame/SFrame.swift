@@ -14,34 +14,35 @@ public enum SFrameError: Error {
     case badParameter
 }
 
+/// The operation this key is to be used for.
+public enum KeyUse {
+    /// This key is for encryption / sending.
+    case encrypt
+    /// This key is for decryption / receiving.
+    case decrypt
+}
+
 /// SFrame operations.
 public protocol SFrame {
-    /// Add a key to be used for sending/encryption.
-    /// - Parameter keyId: The key's identifier.
-    /// - Parameter key: The base key.
-    /// - Parameter currentCounter: The counter value to start from.
-    /// - Throws: If the key is already in use.
-    mutating func addSendKey(_ keyId: KeyId, key: SymmetricKey, currentCounter: Counter) throws
-
-    /// Add a key to be used for receiving/decryption.
+    /// Add a key to be used for encryption or decryption.
     /// - Parameter keyId: The key's identifier.
     /// - Parameter key: The base key.
     /// - Throws: If the key is already in use.
-    mutating func addReceiveKey(_ keyId: KeyId, key: SymmetricKey) throws
+    mutating func addKey(_ keyId: KeyId, key: SymmetricKey, usage: KeyUse) throws
 
     /// Encrypt a payload, authenticating metadata.
     /// - Parameter keyId: The key to use for encryption.
-    /// - Parameter metadata: Metadata to authenticate.
     /// - Parameter plaintext: The payload to encrypt.
+    /// - Parameter metadata: Metadata to authenticate.
     /// - Returns: The encrypted SFrame ciphertext.
     /// - Throws: If the key is not found, a receive key was used, or encryption fails.
-    mutating func encrypt(_ keyId: KeyId, metadata: Data?, plaintext: Data) throws -> Data
+    mutating func encrypt(_ keyId: KeyId, plaintext: Data, metadata: Data?) throws -> Data
 
     /// Decrypt a payload, authenticating metadata.
-    /// - Parameter metadata: Metadata to authenticate.
     /// - Parameter ciphertext: The encrypted payload.
+    /// - Parameter metadata: Metadata to authenticate.
     /// - Returns: The decrypted payload.
     /// - Throws: If the key is not found, a send key was used, decryption fails,
     /// or the metadata can't be authenticated.
-    func decrypt(metadata: Data, ciphertext: Data) throws -> Data
+    func decrypt(ciphertext: Data, metadata: Data?) throws -> Data
 }

@@ -38,7 +38,7 @@ public struct SwiftCryptoProvider: CryptoProvider {
             CipherSuites.aes_256_gcm_sha512_128.rawValue:
             try AES.GCM.open(.init(box), using: using, authenticating: authenticating)
 
-            // Synthetic CTR.
+            // CTR.
         case CipherSuites.aes_128_ctr_hmac_sha256_32.rawValue,
             CipherSuites.aes_128_ctr_hmac_sha256_64.rawValue,
             CipherSuites.aes_128_ctr_hmac_sha256_80.rawValue:
@@ -151,21 +151,15 @@ extension SwiftCryptoProvider { // swiftlint:disable:this no_grouping_extension
               lhs.count == self.suite.nt else {
             return false
         }
-        switch self.suite.nt * 8 {
-        case 32:
-            let lhs = _Digest<ThirtyTwo>(lhs)
-            let rhs = _Digest<ThirtyTwo>(rhs)
-            return lhs == rhs
+        return switch self.suite.nt * 8 {
+        case ThirtyTwo.count:
+            _Digest<ThirtyTwo>(lhs) == rhs
 
-        case 64:
-            let lhs = _Digest<SixtyFour>(lhs)
-            let rhs = _Digest<SixtyFour>(rhs)
-            return lhs == rhs
+        case SixtyFour.count:
+            _Digest<SixtyFour>(lhs) == rhs
 
-        case 80:
-            let lhs = _Digest<Eighty>(lhs)
-            let rhs = _Digest<Eighty>(rhs)
-            return lhs == rhs
+        case Eighty.count:
+            _Digest<Eighty>(lhs) == rhs
 
         default:
             throw CryptoProviderError.unsupportedCipherSuite
