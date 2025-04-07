@@ -115,9 +115,9 @@ public struct SwiftCryptoProvider: CryptoProvider {
 extension SwiftCryptoProvider { // swiftlint:disable:this no_grouping_extension
     private struct _Digest<T: Bytes>: Digest {
         static var byteCount: Int { T.count / 8 }
-        private let bytes: ContiguousBytes
+        private let bytes: Data
 
-        init(_ bytes: ContiguousBytes) {
+        init(_ bytes: Data) {
             self.bytes = bytes
         }
 
