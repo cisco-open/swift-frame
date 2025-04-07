@@ -28,7 +28,7 @@ public class Context: SFrame {
     private var keys: [KeyId: KeyContext] = [:]
     private let crypto: any CryptoProvider
 
-    public init(provider: any CryptoProvider) {
+    public init(provider: some CryptoProvider) {
         self.crypto = provider
     }
 

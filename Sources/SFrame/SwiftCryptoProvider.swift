@@ -31,7 +31,7 @@ public struct SwiftCryptoProvider: CryptoProvider {
         }
     }
 
-    public func open(box: any SealedBox, using: SymmetricKey, authenticating: Data) throws -> Data {
+    public func open(box: some SealedBox, using: SymmetricKey, authenticating: Data) throws -> Data {
         switch self.suite.identifier {
             // GCM.
         case CipherSuites.aes_128_gcm_sha256_128.rawValue,

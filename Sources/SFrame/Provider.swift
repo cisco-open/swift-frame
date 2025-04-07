@@ -43,7 +43,7 @@ public protocol CryptoProvider {
     ///   - using: The key to use.
     ///   - authenticating: The data to authenticate.
     /// - Returns: The decrypted plaintext.
-    func open(box: SealedBox, using: SymmetricKey, authenticating: Data) throws -> Data
+    func open(box: some SealedBox, using: SymmetricKey, authenticating: Data) throws -> Data
 
     /// AES CTR Encryption operation used internally by SFrame's AES-CTR with SHA2 implementation.
     /// - Parameters:
