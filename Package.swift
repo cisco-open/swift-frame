@@ -14,7 +14,6 @@ public let package = Package(
             targets: ["SFrame"])
     ],
     dependencies: [
-        .package(url: "https://github.com/SimplyDanny/SwiftLintPlugins", from: "0.58.2"),
         .package(url: "https://github.com/apple/swift-crypto.git", "1.0.0" ..< "4.0.0")
     ],
     targets: [
@@ -23,16 +22,10 @@ public let package = Package(
             dependencies: [
                 .product(name: "Crypto", package: "swift-crypto"),
                 .product(name: "_CryptoExtras", package: "swift-crypto")
-            ],
-            plugins: [
-                .plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")
             ]),
         .testTarget(
             name: "SFrameTests",
             dependencies: ["SFrame"],
-            resources: [.process("rfc_vectors.json")],
-            plugins: [
-                .plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")
-            ])
+            resources: [.process("rfc_vectors.json")])
     ]
 )
