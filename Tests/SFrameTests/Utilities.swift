@@ -189,7 +189,7 @@ private struct EncodeBigEndianTests {
         let size = MemoryLayout<UInt64>.size
         var matching = Data(capacity: size)
         u64.encodeBigEndian(size, into: &matching)
-        let decoded = matching.withUnsafeBytes { $0.load(as: UInt64.self) }.bigEndian
+        let decoded = matching.withUnsafeBytes { $0.loadUnaligned(as: UInt64.self) }.bigEndian
         #expect(u64 == decoded)
     }
 
@@ -199,7 +199,7 @@ private struct EncodeBigEndianTests {
         let size = MemoryLayout<UInt64>.size
         var matching = Data(capacity: size)
         u32.encodeBigEndian(size, into: &matching)
-        let decoded = matching.withUnsafeBytes { $0.load(as: UInt64.self) }.bigEndian
+        let decoded = matching.withUnsafeBytes { $0.loadUnaligned(as: UInt64.self) }.bigEndian
         #expect(u32 == decoded)
     }
 }
