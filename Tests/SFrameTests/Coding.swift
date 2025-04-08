@@ -22,7 +22,7 @@ private struct CodingTests {
     }
 
     @Test("Bad Header")
-    private func testBadHeader() {
+    func testBadHeader() {
         let data = Data()
         var read = 0
         #expect(throws: SFrameError.malformedCipherText) {
@@ -37,7 +37,7 @@ private struct CodingTests {
     }
 
     @Test("CipherText")
-    private func testCipherTextCoding() throws {
+    func testCipherTextCoding() throws {
         // Make an example CipherText.
         let header = Header(keyId: 1234, counter: 5678) // swiftlint:disable:this number_separator
         let encrypted = Data([0xDE, 0xAD, 0xBE, 0xEF])

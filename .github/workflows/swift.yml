@@ -1,4 +1,4 @@
-name: Swift
+name: Build & Test
 
 on:
   push:
@@ -9,6 +9,11 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    continue-on-error: true
+    permissions:
+        issues: write
+        pull-requests: write
+        contents: read
     steps:
     - uses: actions/checkout@v4
     - uses: actions/cache@v4

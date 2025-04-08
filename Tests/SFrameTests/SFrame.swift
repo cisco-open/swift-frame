@@ -38,7 +38,7 @@ private struct SFrameVectorTests {
 
 private struct SFrameTests {
     @Test("Key Misuse - Missing")
-    private func testEncryptBadKid() throws {
+    func testEncryptBadKid() throws {
         let suite = registry[.aes_128_ctr_hmac_sha256_32]! // swiftlint:disable:this force_unwrapping
         let provider = SwiftCryptoProvider(suite: suite)
         let sframe = Context(provider: provider)
@@ -48,7 +48,7 @@ private struct SFrameTests {
     }
 
     @Test("Key Misuse - Existing")
-    private func testExistingKey() throws {
+    func testExistingKey() throws {
         let suite = registry[.aes_128_ctr_hmac_sha256_32]! // swiftlint:disable:this force_unwrapping
         let provider = SwiftCryptoProvider(suite: suite)
         let sframe = Context(provider: provider)
@@ -60,7 +60,7 @@ private struct SFrameTests {
     }
 
     @Test("Key Misuse - Encrypt with decrypt")
-    private func testEncryptWithDecryptKey() throws {
+    func testEncryptWithDecryptKey() throws {
         let suite = registry[.aes_128_ctr_hmac_sha256_32]! // swiftlint:disable:this force_unwrapping
         let provider = SwiftCryptoProvider(suite: suite)
         let sframe = Context(provider: provider)
@@ -72,7 +72,7 @@ private struct SFrameTests {
     }
 
     @Test("Key Misuse - Decrypt with encrypt")
-    private func testDecryptWithEncryptKey() throws {
+    func testDecryptWithEncryptKey() throws {
         let suite = registry[.aes_128_ctr_hmac_sha256_32]! // swiftlint:disable:this force_unwrapping
         let provider = SwiftCryptoProvider(suite: suite)
         let sframe = Context(provider: provider)

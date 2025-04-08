@@ -1,0 +1,36 @@
+name: Benchmark
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    permissions:
+        issues: write
+        pull-requests: write
+        contents: read
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/cache@v4
+      with:
+        path: .build
+        key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
+        restore-keys: |
+          ${{ runner.os }}-spm-
+    - uses: actions/cache@v4
+      with:
+        path: Benchmarks/.build
+        key: ${{ runner.os }}-spm-benchmarks-${{ hashFiles('Benchmarks/Package.resolved') }}
+        restore-keys: |
+          ${{ runner.os }}-spm-benchmarks-
+    - name: jemalloc
+      run: sudo apt-get install -y libjemalloc-dev
+    - name: Run benchmarks for PR branch
+      working-directory: ./Benchmarks
+      run: |
+        swift package --allow-writing-to-directory .benchmarkBaselines/ benchmark baseline update pull_request --no-progress --quiet

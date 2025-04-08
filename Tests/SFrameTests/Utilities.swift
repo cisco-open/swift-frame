@@ -21,7 +21,7 @@ internal struct SerializedHeader: Decodable, CustomStringConvertible {
     internal let ctr: Counter
     internal let encoded: Data
 
-    internal init(from decoder: any Decoder) throws {
+    internal init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.kid = try container.decode(KeyId.self, forKey: .kid)
         self.ctr = try container.decode(KeyId.self, forKey: .ctr)
@@ -55,7 +55,7 @@ internal struct CryptoVector: Decodable, CustomStringConvertible {
     internal let plainText: Data
     internal let cipherText: Data
 
-    internal init(from decoder: any Decoder) throws {
+    internal init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let encKey = try container.decode(String.self, forKey: .encKey)
         self.encKey = hexToData(encKey)
@@ -108,7 +108,7 @@ internal struct SFrameVector: Decodable, CustomStringConvertible { // swiftlint:
     internal let plainText: Data
     internal let cipherText: Data
 
-    internal init(from decoder: any Decoder) throws {
+    internal init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.cipherSuite = try container.decode(CipherSuiteIdentifier.self, forKey: .cipherSuite)
         let baseKey = try container.decode(String.self, forKey: .baseKey)
@@ -184,7 +184,7 @@ internal func loadTestVectors() throws -> TestVectors {
 
 private struct EncodeBigEndianTests {
     @Test("Encode Big Endian - No Padding")
-    private func testEncodeBigEndianNoPadding() {
+    func testEncodeBigEndianNoPadding() {
         let u64: UInt64 = 12_345
         let size = MemoryLayout<UInt64>.size
         var matching = Data(capacity: size)
@@ -194,7 +194,7 @@ private struct EncodeBigEndianTests {
     }
 
     @Test("Encode Big Endian - Padding")
-    private func testEncodeBigEndian() {
+    func testEncodeBigEndian() {
         let u32: UInt32 = 12_345
         let size = MemoryLayout<UInt64>.size
         var matching = Data(capacity: size)
@@ -206,7 +206,7 @@ private struct EncodeBigEndianTests {
 
 private struct TestDataExtensions {
     @Test("XOR Length")
-    private func testXORLength() {
+    func testXORLength() {
         let lhs = Data([1, 2, 3])
         let rhs = Data([4, 5, 6, 7])
         #expect(performing: {
