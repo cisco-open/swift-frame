@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Cisco
+#
+# SPDX-License-Identifier: Apache-2.0
+
 # Makefile for Swift benchmarking
 
 .PHONY: update bench help

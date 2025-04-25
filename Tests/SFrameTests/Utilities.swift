@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Cisco
+//
+// SPDX-License-Identifier: Apache-2.0
+
 import Foundation
 @testable import SFrame
 import Testing

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Cisco
+//
+// SPDX-License-Identifier: Apache-2.0
+
 import _CryptoExtras
 import Crypto
 import Foundation
@@ -14,12 +18,12 @@ public struct SwiftCryptoProvider: CryptoProvider {
     public func seal(plainText: Data, using: SymmetricKey, nonce: Data, authenticating: Data) throws -> any SealedBox {
         switch self.suite.identifier {
         case CipherSuites.aes_128_gcm_sha256_128.rawValue,
-            CipherSuites.aes_256_gcm_sha512_128.rawValue:
+             CipherSuites.aes_256_gcm_sha512_128.rawValue:
             return try AES.GCM.seal(plainText, using: using, nonce: .init(data: nonce), authenticating: authenticating)
 
         case CipherSuites.aes_128_ctr_hmac_sha256_32.rawValue,
-            CipherSuites.aes_128_ctr_hmac_sha256_64.rawValue,
-            CipherSuites.aes_128_ctr_hmac_sha256_80.rawValue:
+             CipherSuites.aes_128_ctr_hmac_sha256_64.rawValue,
+             CipherSuites.aes_128_ctr_hmac_sha256_80.rawValue:
             return try SyntheticAEAD(suite: self.suite,
                                      provider: self,
                                      sframeKey: using).encrypt(nonce: nonce,
@@ -33,15 +37,15 @@ public struct SwiftCryptoProvider: CryptoProvider {
 
     public func open(box: some SealedBox, using: SymmetricKey, authenticating: Data) throws -> Data {
         switch self.suite.identifier {
-            // GCM.
+        // GCM.
         case CipherSuites.aes_128_gcm_sha256_128.rawValue,
-            CipherSuites.aes_256_gcm_sha512_128.rawValue:
+             CipherSuites.aes_256_gcm_sha512_128.rawValue:
             try AES.GCM.open(.init(box), using: using, authenticating: authenticating)
 
-            // CTR.
+        // CTR.
         case CipherSuites.aes_128_ctr_hmac_sha256_32.rawValue,
-            CipherSuites.aes_128_ctr_hmac_sha256_64.rawValue,
-            CipherSuites.aes_128_ctr_hmac_sha256_80.rawValue:
+             CipherSuites.aes_128_ctr_hmac_sha256_64.rawValue,
+             CipherSuites.aes_128_ctr_hmac_sha256_80.rawValue:
             try SyntheticAEAD(suite: self.suite,
                               provider: self,
                               sframeKey: using).decrypt(box: box, aad: authenticating)
@@ -53,14 +57,14 @@ public struct SwiftCryptoProvider: CryptoProvider {
 
     public func hkdfExpand(pseudoRandomKey: SymmetricKey, info: Data, outputByteCount: Int) throws -> SymmetricKey {
         switch self.suite.identifier {
-            // SHA256.
+        // SHA256.
         case CipherSuites.aes_128_gcm_sha256_128.rawValue,
-            CipherSuites.aes_128_ctr_hmac_sha256_32.rawValue,
-            CipherSuites.aes_128_ctr_hmac_sha256_64.rawValue,
-            CipherSuites.aes_128_ctr_hmac_sha256_80.rawValue:
+             CipherSuites.aes_128_ctr_hmac_sha256_32.rawValue,
+             CipherSuites.aes_128_ctr_hmac_sha256_64.rawValue,
+             CipherSuites.aes_128_ctr_hmac_sha256_80.rawValue:
             HKDF<SHA256>.expand(pseudoRandomKey: pseudoRandomKey, info: info, outputByteCount: outputByteCount)
 
-            // SHA512.
+        // SHA512.
         case CipherSuites.aes_256_gcm_sha512_128.rawValue:
             HKDF<SHA512>.expand(pseudoRandomKey: pseudoRandomKey, info: info, outputByteCount: outputByteCount)
 
@@ -71,16 +75,16 @@ public struct SwiftCryptoProvider: CryptoProvider {
 
     public func hkdfExtract(inputKeyMaterial: SymmetricKey, salt: Data?) throws -> Data {
         switch self.suite.identifier {
-            // SHA256.
+        // SHA256.
         case CipherSuites.aes_128_gcm_sha256_128.rawValue,
-            CipherSuites.aes_128_ctr_hmac_sha256_32.rawValue,
-            CipherSuites.aes_128_ctr_hmac_sha256_64.rawValue,
-            CipherSuites.aes_128_ctr_hmac_sha256_80.rawValue:
-                .init(HKDF<SHA256>.extract(inputKeyMaterial: inputKeyMaterial, salt: salt))
+             CipherSuites.aes_128_ctr_hmac_sha256_32.rawValue,
+             CipherSuites.aes_128_ctr_hmac_sha256_64.rawValue,
+             CipherSuites.aes_128_ctr_hmac_sha256_80.rawValue:
+            .init(HKDF<SHA256>.extract(inputKeyMaterial: inputKeyMaterial, salt: salt))
 
-            // SHA512.
+        // SHA512.
         case CipherSuites.aes_256_gcm_sha512_128.rawValue:
-                .init(HKDF<SHA512>.extract(inputKeyMaterial: inputKeyMaterial, salt: salt))
+            .init(HKDF<SHA512>.extract(inputKeyMaterial: inputKeyMaterial, salt: salt))
 
         default:
             throw CryptoProviderError.unsupportedCipherSuite
@@ -89,11 +93,11 @@ public struct SwiftCryptoProvider: CryptoProvider {
 
     public func hmac(key: SymmetricKey, data: Data) throws -> Data {
         switch self.suite.identifier {
-            // SHA256.
+        // SHA256.
         case CipherSuites.aes_128_ctr_hmac_sha256_32.rawValue,
-            CipherSuites.aes_128_ctr_hmac_sha256_64.rawValue,
-            CipherSuites.aes_128_ctr_hmac_sha256_80.rawValue:
-                .init(HMAC<SHA256>.authenticationCode(for: data, using: key))
+             CipherSuites.aes_128_ctr_hmac_sha256_64.rawValue,
+             CipherSuites.aes_128_ctr_hmac_sha256_80.rawValue:
+            .init(HMAC<SHA256>.authenticationCode(for: data, using: key))
 
         default:
             throw CryptoProviderError.unsupportedCipherSuite

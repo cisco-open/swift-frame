@@ -1,0 +1,20 @@
+# SPDX-FileCopyrightText: Copyright (c) 2025 Cisco
+# SPDX-License-Identifier: Apache-2.0
+
+version = 1
+
+[[annotations]]
+path = [
+  ".gitignore",
+  "Package.resolved",
+  ".swiftlint.yml",
+  ".github/workflows/benchmark.yml",
+  ".github/workflows/swift.yml",
+  ".swift-version",
+  "Benchmarks/.gitignore",
+  "Benchmarks/Package.resolved",
+  "Tests/SFrameTests/rfc_vectors.json",
+  ".pre-commit-config.yaml"
+]
+SPDX-FileCopyrightText = "Copyright (c) 2025 Cisco"
+SPDX-License-Identifier = "Apache-2.0"

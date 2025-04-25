@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2025 Cisco
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # S(wift)Frame
 
 Pure Swift implementation of [SFrame (RFC9605)](https://datatracker.ietf.org/doc/rfc9605/).

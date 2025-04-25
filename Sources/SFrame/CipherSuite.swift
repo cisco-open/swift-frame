@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Cisco
+//
+// SPDX-License-Identifier: Apache-2.0
+
 // swiftlint:disable identifier_name
 
 /// SFrame cipher suites by registered identifier.

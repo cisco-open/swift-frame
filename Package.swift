@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Cisco
+//
+// SPDX-License-Identifier: Apache-2.0
+
 // swift-tools-version: 6.0
 
 import PackageDescription
