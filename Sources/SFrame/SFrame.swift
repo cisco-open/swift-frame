@@ -13,13 +13,16 @@ public typealias KeyId = UInt64
 public typealias Counter = UInt64
 
 public enum SFrameError: Error {
-    case invalidKeyId
+    case missingKey
+    case existingKey
     case badParameter
     case malformedCipherText
+    case keyMisuse
 }
 
 /// The operation this key is to be used for.
-public enum KeyUse {
+@frozen
+public enum KeyUsage {
     /// This key is for encryption / sending.
     case encrypt
     /// This key is for decryption / receiving.
@@ -32,7 +35,7 @@ public protocol SFrame {
     /// - Parameter keyId: The key's identifier.
     /// - Parameter key: The base key.
     /// - Throws: If the key is already in use.
-    mutating func addKey(_ keyId: KeyId, key: SymmetricKey, usage: KeyUse) throws
+    mutating func addKey(_ keyId: KeyId, key: SymmetricKey, usage: KeyUsage) throws
 
     /// Encrypt a payload, authenticating metadata.
     /// - Parameter keyId: The key to use for encryption.
@@ -40,7 +43,7 @@ public protocol SFrame {
     /// - Parameter metadata: Metadata to authenticate.
     /// - Returns: The encrypted SFrame ciphertext.
     /// - Throws: If the key is not found, a receive key was used, or encryption fails.
-    mutating func encrypt(_ keyId: KeyId, plaintext: Data, metadata: Data?) throws -> Data
+    mutating func protect(_ keyId: KeyId, plaintext: Data, metadata: Data?) throws -> Data
 
     /// Decrypt a payload, authenticating metadata.
     /// - Parameter ciphertext: The encrypted payload.
@@ -48,5 +51,5 @@ public protocol SFrame {
     /// - Returns: The decrypted payload.
     /// - Throws: If the key is not found, a send key was used, decryption fails,
     /// or the metadata can't be authenticated.
-    func decrypt(ciphertext: Data, metadata: Data?) throws -> Data
+    func unprotect(ciphertext: Data, metadata: Data?) throws -> Data
 }

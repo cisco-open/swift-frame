@@ -34,17 +34,11 @@ extension Data {
     ///  - lhs: The left hand side of the XOR operation.
     ///  - rhs: The right hand side of the XOR operation.
     /// - Returns: A new ``Data`` containing the XOR'd bytes.
-    internal static func ^ (lhs: Data, rhs: Data) throws -> Data {
+    internal static func ^ (lhs: Data, rhs: Data) throws(DataError) -> Data {
         guard lhs.count == rhs.count else {
-            throw DataError.lengthMismatch
+            throw .lengthMismatch
         }
         return .init(zip(lhs, rhs).map(^))
-    }
-
-    /// Get a hex string representation of the data.
-    /// - Returns: The hex string representation.
-    internal func toHex() -> String {
-        self.map { .init(format: "%02x", $0) }.joined()
     }
 }
 

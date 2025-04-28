@@ -13,12 +13,10 @@ private protocol KeyContext {
 private struct SendKeyContext: KeyContext {
     let key: SymmetricKey
     let salt: ContiguousBytes
-    let counter: Counter
+    private(set) var counter: Counter
 
-    static func incrementing(_ context: Self) -> Self {
-        .init(key: context.key,
-              salt: context.salt,
-              counter: context.counter + 1)
+    mutating func increment() {
+        self.counter += 1
     }
 }
 
@@ -29,74 +27,78 @@ private struct ReceiveKeyContext: KeyContext {
 
 /// SFrame Implementation.
 public class Context: SFrame {
-    private var keys: [KeyId: KeyContext] = [:]
+    private var sendKeys: [KeyId: SendKeyContext] = [:]
+    private var recvKeys: [KeyId: ReceiveKeyContext] = [:]
     private let crypto: any CryptoProvider
 
     public init(provider: some CryptoProvider) {
         self.crypto = provider
     }
 
-    public func addKey(_ keyId: KeyId, key: SymmetricKey, usage: KeyUse) throws {
-        guard self.keys[keyId] == nil else {
-            throw SFrameError.invalidKeyId
+    public func addKey(_ keyId: KeyId, key: SymmetricKey, usage: KeyUsage) throws {
+        // Check for existing.
+        if usage == .encrypt && self.recvKeys[keyId] != nil ||
+            usage == .decrypt && self.sendKeys[keyId] != nil {
+            throw SFrameError.existingKey
         }
+
         let derived = try key.sframeDerive(keyId: keyId,
                                            provider: self.crypto)
-        self.keys[keyId] = switch usage {
+        switch usage {
         case .encrypt:
-            SendKeyContext(key: derived.key, salt: derived.salt, counter: 0)
+            self.sendKeys[keyId] = .init(key: derived.key, salt: derived.salt, counter: 0)
 
         case .decrypt:
-            ReceiveKeyContext(key: derived.key, salt: derived.salt)
+            self.recvKeys[keyId] = .init(key: derived.key, salt: derived.salt)
         }
     }
 
-    public func encrypt(_ keyId: KeyId, plaintext: Data, metadata: Data?) throws -> Data {
+    public func protect(_ keyId: KeyId, plaintext: Data, metadata: Data?) throws -> Data {
         // Ensure we have a matching encryption key.
-        guard let context = self.keys[keyId],
-              let sendContext = context as? SendKeyContext else {
-            throw SFrameError.invalidKeyId
+        guard var context = self.sendKeys[keyId] else {
+            throw SFrameError.missingKey
         }
 
         // Derive the nonce.
-        let nonceBytes = try self.formNonce(counter: sendContext.counter, salt: sendContext.salt)
+        let nonceBytes = try self.formNonce(counter: context.counter, salt: context.salt)
 
         // Prepare the header & aad.
-        let header = Header(keyId: keyId, counter: sendContext.counter)
+        let header = Header(keyId: keyId, counter: context.counter)
         var aad = Data()
-        try header.encode(into: &aad)
+        header.encode(into: &aad)
         if let metadata {
             aad.append(metadata)
         }
 
         // Seal.
         let sealedBox = try self.crypto.seal(plainText: plaintext,
-                                             using: sendContext.key,
+                                             using: context.key,
                                              nonce: .init(nonceBytes),
                                              authenticating: aad)
-        self.keys[keyId] = SendKeyContext.incrementing(sendContext)
-        let cipherText = CipherText(header: header,
+        context.increment()
+        self.sendKeys[keyId] = context
+        let cipherText = Ciphertext(header: header,
                                     encrypted: sealedBox.encrypted,
                                     authenticationTag: sealedBox.authTag)
-        var data = Data(capacity: sealedBox.encrypted.count + sealedBox.authTag.count + 16)
-        try cipherText.encode(into: &data)
+        let maxHeaderSize = 17
+        var data = Data(capacity: sealedBox.encrypted.count + sealedBox.authTag.count + maxHeaderSize)
+        cipherText.encode(into: &data)
         return data
     }
 
-    public func decrypt(ciphertext: Data, metadata: Data?) throws -> Data {
+    public func unprotect(ciphertext: Data, metadata: Data?) throws -> Data {
         // Decode the constituant parts.
         var read = 0
-        let ciphertext = try CipherText(tagLength: self.crypto.suite.nt, from: ciphertext, read: &read)
+        let ciphertext = try Ciphertext(tagLength: self.crypto.suite.nt, from: ciphertext, read: &read)
 
         // Ensure we have a matching decryption key.
-        guard let context = self.keys[ciphertext.header.keyId],
-              context is ReceiveKeyContext else {
-            throw SFrameError.invalidKeyId
+        guard let context = self.recvKeys[ciphertext.header.keyId] else {
+            throw SFrameError.missingKey
         }
 
         let nonce = try self.formNonce(counter: ciphertext.header.counter, salt: context.salt)
         var result = Data()
-        try ciphertext.header.encode(into: &result)
+        ciphertext.header.encode(into: &result)
         if let metadata {
             result.append(metadata)
         }
@@ -107,7 +109,7 @@ public class Context: SFrame {
         return try self.crypto.open(box: sealedBox, using: context.key, authenticating: aad)
     }
 
-    private func formNonce(counter: Counter, salt: some ContiguousBytes) throws -> Data {
+    private func formNonce(counter: Counter, salt: some ContiguousBytes) throws(DataError) -> Data {
         let nonce = Data(contiguousNoCopy: salt)
         precondition(nonce.count == self.crypto.suite.nn)
         var counterData = Data(count: self.crypto.suite.nn)

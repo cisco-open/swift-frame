@@ -10,7 +10,7 @@ internal enum Fixtures {
     internal static let testVectors = try! loadTestVectors() // swiftlint:disable:this force_try
 }
 
-internal struct SerializedHeader: Decodable, CustomStringConvertible {
+internal struct HeaderTestVector: Decodable, CustomStringConvertible {
     private enum CodingKeys: CodingKey {
         case kid
         case ctr
@@ -34,7 +34,7 @@ internal struct SerializedHeader: Decodable, CustomStringConvertible {
     }
 }
 
-internal struct CryptoVector: Decodable, CustomStringConvertible {
+internal struct CryptoTestVector: Decodable, CustomStringConvertible {
     private enum CodingKeys: String, CodingKey {
         case encKey = "enc_key"
         case authKey = "auth_key"
@@ -79,7 +79,7 @@ internal struct CryptoVector: Decodable, CustomStringConvertible {
     }
 }
 
-internal struct SFrameVector: Decodable, CustomStringConvertible { // swiftlint:disable:this file_types_order
+internal struct SFrameTestVector: Decodable, CustomStringConvertible { // swiftlint:disable:this file_types_order
     private enum CodingKeys: String, CodingKey {
         case cipherSuite = "cipher_suite"
         case baseKey = "base_key"
@@ -145,9 +145,9 @@ internal struct TestVectors: Decodable {
         case sframe = "sframe"
     }
 
-    internal let header: [SerializedHeader]
-    internal let crypto: [CryptoVector]
-    internal let sframe: [SFrameVector]
+    internal let header: [HeaderTestVector]
+    internal let crypto: [CryptoTestVector]
+    internal let sframe: [SFrameTestVector]
 }
 
 internal func parseHex(_ hex: String) -> UInt64 {

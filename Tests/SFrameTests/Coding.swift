@@ -8,7 +8,7 @@ import Testing
 
 private struct CodingTests {
     @Test("Header", arguments: Fixtures.testVectors.header)
-    private func testHeaderCoding(_ serialized: SerializedHeader) throws {
+    private func testHeaderCoding(_ serialized: HeaderTestVector) throws {
         // Deserialize the kid & ctr into a header, ensure they match.
         let header = Header(serialized: serialized)
         #expect(header.keyId == serialized.kid)
@@ -16,7 +16,7 @@ private struct CodingTests {
 
         // Encode the deserialized header, ensure it matches the serialized header bytes.
         var encoded = Data()
-        try header.encode(into: &encoded)
+        header.encode(into: &encoded)
         #expect(encoded == serialized.encoded)
 
         // Decode the serialized header, ensure it matches the constructed header.
@@ -46,15 +46,15 @@ private struct CodingTests {
         let header = Header(keyId: 1234, counter: 5678) // swiftlint:disable:this number_separator
         let encrypted = Data([0xDE, 0xAD, 0xBE, 0xEF])
         let tag = Data([0xBA, 0xDC, 0x0F, 0xFE])
-        let cipherText = CipherText(header: header, encrypted: encrypted, authenticationTag: tag)
+        let cipherText = Ciphertext(header: header, encrypted: encrypted, authenticationTag: tag)
 
         // Encode it.
         var encoded = Data()
-        try cipherText.encode(into: &encoded)
+        cipherText.encode(into: &encoded)
 
         // Ensure encoded header data matches.
         var expected = Data()
-        try header.encode(into: &expected)
+        header.encode(into: &expected)
         let encodedHeader = encoded[..<expected.count]
         #expect(encodedHeader == expected)
 
@@ -70,7 +70,7 @@ private struct CodingTests {
 
         // And backwards.
         var ctOffset = 0
-        let decoded = try CipherText(tagLength: tag.count, from: encoded, read: &ctOffset)
+        let decoded = try Ciphertext(tagLength: tag.count, from: encoded, read: &ctOffset)
         #expect(decoded.header == header)
         #expect(decoded.encrypted == encrypted)
         #expect(decoded.authenticationTag == tag)
@@ -78,7 +78,7 @@ private struct CodingTests {
 }
 
 extension Header {
-    internal init(serialized: SerializedHeader) {
+    internal init(serialized: HeaderTestVector) {
         let kid = serialized.kid
         let ctr = serialized.ctr
         self.init(keyId: kid, counter: ctr)

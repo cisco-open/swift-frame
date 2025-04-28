@@ -5,7 +5,7 @@
 import Foundation
 
 /// SFrame Encryption Result.
-internal struct CipherText {
+internal struct Ciphertext {
     /// SFrame Header.
     internal let header: Header
     /// The encrypted payload.
@@ -24,7 +24,7 @@ internal struct CipherText {
     ///  - tagLength: The length of the authentication tag.
     ///  - data: The encoded data.
     ///  - read: The running offset read from data, in bytes.
-    internal init(tagLength: Int, from data: Data, read: inout Int) throws {
+    internal init(tagLength: Int, from data: Data, read: inout Int) throws(SFrameError) {
         self.header = try .init(from: data, read: &read)
         guard data.count - read >= tagLength else {
             throw SFrameError.malformedCipherText
@@ -37,8 +37,8 @@ internal struct CipherText {
 
     /// Encode the SFrame CipherText into its wire format.
     /// - Parameter data: The data to encode into.
-    internal func encode(into data: inout Data) throws {
-        try self.header.encode(into: &data)
+    internal func encode(into data: inout Data) {
+        self.header.encode(into: &data)
         data.append(self.encrypted)
         data.append(self.authenticationTag)
     }

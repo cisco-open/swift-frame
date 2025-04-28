@@ -49,21 +49,13 @@ public protocol CryptoProvider {
     /// - Returns: The decrypted plaintext.
     func open(box: some SealedBox, using: SymmetricKey, authenticating: Data) throws -> Data
 
-    /// AES CTR Encryption operation used internally by SFrame's AES-CTR with SHA2 implementation.
+    /// AES CTR operation used internally by SFrame's AES-CTR with SHA2 implementation.
     /// - Parameters:
     ///   - key: The key to use.
     ///   - nonce: The nonce to use.
-    ///   - plainText: The plaintext to encrypt.
-    /// - Returns: The encrypted ciphertext.
-    func encryptCtr(key: SymmetricKey, nonce: Data, plainText: Data) throws -> Data
-
-    /// AES CTR Decryption operation used internally by SFrame's AES-CTR with SHA2 implementation.
-    /// - Parameters:
-    ///   - key: The key to use.
-    ///   - nonce: The nonce to use.
-    ///   - cipherText: The ciphertext to decrypt.
-    /// - Returns: The decrypted plaintext.
-    func decryptCtr(key: SymmetricKey, nonce: Data, cipherText: Data) throws -> Data
+    ///   - data: The data to operate on.
+    /// - Returns: The transformed ``data``.
+    func ctr(key: SymmetricKey, nonce: Data, data: Data) throws -> Data
 
     /// HMAC operation used internally by SFrame's AES-CTR with SHA2 implementation.
     /// - Parameters:

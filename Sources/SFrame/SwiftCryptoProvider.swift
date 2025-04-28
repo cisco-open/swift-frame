@@ -26,9 +26,9 @@ public struct SwiftCryptoProvider: CryptoProvider {
              CipherSuites.aes_128_ctr_hmac_sha256_80.rawValue:
             return try SyntheticAEAD(suite: self.suite,
                                      provider: self,
-                                     sframeKey: using).encrypt(nonce: nonce,
-                                                               aad: authenticating,
-                                                               plainText: plainText)
+                                     sframeKey: using).seal(nonce: nonce,
+                                                            aad: authenticating,
+                                                            plainText: plainText)
 
         default:
             throw CryptoProviderError.unsupportedCipherSuite
@@ -48,7 +48,7 @@ public struct SwiftCryptoProvider: CryptoProvider {
              CipherSuites.aes_128_ctr_hmac_sha256_80.rawValue:
             try SyntheticAEAD(suite: self.suite,
                               provider: self,
-                              sframeKey: using).decrypt(box: box, aad: authenticating)
+                              sframeKey: using).open(box: box, aad: authenticating)
 
         default:
             throw CryptoProviderError.unsupportedCipherSuite
@@ -104,12 +104,8 @@ public struct SwiftCryptoProvider: CryptoProvider {
         }
     }
 
-    public func encryptCtr(key: SymmetricKey, nonce: Data, plainText: Data) throws -> Data {
-        try AES._CTR.encrypt(plainText, using: key, nonce: .init(nonceBytes: nonce))
-    }
-
-    public func decryptCtr(key: SymmetricKey, nonce: Data, cipherText: Data) throws -> Data {
-        try AES._CTR.decrypt(cipherText, using: key, nonce: .init(nonceBytes: nonce))
+    public func ctr(key: SymmetricKey, nonce: Data, data: Data) throws -> Data {
+        try AES._CTR.encrypt(data, using: key, nonce: .init(nonceBytes: nonce))
     }
 }
 
@@ -146,11 +142,7 @@ extension SwiftCryptoProvider { // swiftlint:disable:this no_grouping_extension
 
     /// Constant time comparison using custom Digests.
     public func constantTimeCompare(lhs: Data, rhs: Data) throws -> Bool {
-        guard lhs.count == rhs.count,
-              lhs.count == self.suite.nt else {
-            return false
-        }
-        return switch self.suite.nt * 8 {
+        switch self.suite.nt * 8 {
         case ThirtyTwo.count:
             _Digest<ThirtyTwo>(lhs) == rhs
 

@@ -18,7 +18,7 @@ internal let benchmarks: @Sendable () -> Void = { // swiftlint:disable:this clos
 
         benchmark.startMeasurement()
         for index in benchmark.scaledIterations {
-            try blackHole(headers[index].encode(into: &datas[index]))
+            blackHole(headers[index].encode(into: &datas[index]))
         }
     }
 
@@ -27,7 +27,7 @@ internal let benchmarks: @Sendable () -> Void = { // swiftlint:disable:this clos
         for _ in benchmark.scaledIterations {
             let header = Header(keyId: .random(in: 0..<KeyId.max), counter: .random(in: 0..<Counter.max))
             var data = Data(capacity: 17)
-            try header.encode(into: &data)
+            header.encode(into: &data)
             datas.append(data)
         }
 
@@ -44,23 +44,23 @@ internal let benchmarks: @Sendable () -> Void = { // swiftlint:disable:this clos
         let plain = Data("PLAIN TEXT".utf8)
         let metadata = Data("METADATA".utf8)
 
-        Benchmark("Encrypt", configuration: .init(tags: ["suite": "\(suite.key)"])) { benchmark in
+        Benchmark("Protect", configuration: .init(tags: ["suite": "\(suite.key)"])) { benchmark in
             let provider = SwiftCryptoProvider(suite: suite.value)
             let sframe = Context(provider: provider)
             try sframe.addKey(kid, key: key, usage: .encrypt)
             benchmark.startMeasurement()
-            try blackHole(sframe.encrypt(kid, plaintext: plain, metadata: metadata))
+            try blackHole(sframe.protect(kid, plaintext: plain, metadata: metadata))
         }
 
-        Benchmark("Decrypt", configuration: .init(tags: ["suite": "\(suite.key)"])) { benchmark in
+        Benchmark("Unprotect", configuration: .init(tags: ["suite": "\(suite.key)"])) { benchmark in
             let provider = SwiftCryptoProvider(suite: suite.value)
             let sframe = Context(provider: provider)
             try sframe.addKey(kid, key: key, usage: .encrypt)
-            let encrypted = try sframe.encrypt(kid, plaintext: plain, metadata: metadata)
+            let encrypted = try sframe.protect(kid, plaintext: plain, metadata: metadata)
             let decryptContext = Context(provider: provider)
             try decryptContext.addKey(kid, key: key, usage: .decrypt)
             benchmark.startMeasurement()
-            blackHole(try decryptContext.decrypt(ciphertext: encrypted, metadata: metadata))
+            blackHole(try decryptContext.unprotect(ciphertext: encrypted, metadata: metadata))
         }
     }
 }

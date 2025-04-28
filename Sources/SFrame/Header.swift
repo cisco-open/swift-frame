@@ -25,7 +25,7 @@ public struct Header {
     /// Decode an SFrame header from its encoded wire format.
     /// - Parameter data: The encoded data.
     /// - Parameter read: The running offset read from data, in bytes.
-    public init(from data: Data, read: inout Int) throws {
+    public init(from data: Data, read: inout Int) throws(SFrameError) {
         guard let configByte = data.first else {
             throw SFrameError.malformedCipherText
         }
@@ -37,38 +37,34 @@ public struct Header {
 
         // Decode KID
         if hasExtendedKID {
-            let kidLength = Int((configByte >> 4) & 0b111) + 1
-            guard data.count >= read + kidLength else {
-                throw SFrameError.malformedCipherText
-            }
-            var kidBytes = [UInt8]()
-            for _ in 0..<kidLength {
-                kidBytes.append(data[read])
-                read += 1
-            }
-            self.keyId = Self.decodeInteger(from: kidBytes)
+            self.keyId = try Self.decodeInteger(configByte >> 4, data: data, read: &read)
         } else {
             self.keyId = UInt64((configByte >> 4) & 0b111)
         }
 
         // Decode CTR
         if hasExtendedCTR {
-            let ctrLength = Int(configByte & 0b111) + 1
-            guard data.count >= read + ctrLength else {
-                throw SFrameError.malformedCipherText
-            }
-            var ctrBytes = [UInt8]()
-            for _ in 0..<ctrLength {
-                ctrBytes.append(data[read])
-                read += 1
-            }
-            self.counter = Self.decodeInteger(from: ctrBytes)
+            self.counter = try Self.decodeInteger(configByte, data: data, read: &read)
         } else {
             self.counter = UInt64(configByte & 0b111)
         }
     }
 
-    private static func decodeInteger(from bytes: [UInt8]) -> UInt64 {
+    private static func decodeInteger(_ value: UInt8, data: Data, read: inout Int) throws(SFrameError) -> UInt64 {
+        guard !data.isEmpty, data[0] != 0 else {
+            throw SFrameError.malformedCipherText
+        }
+
+        let length = Int(value & 0b111) + 1
+        guard data.count >= read + length else {
+            throw SFrameError.malformedCipherText
+        }
+        var bytes = [UInt8]()
+        for _ in 0..<length {
+            bytes.append(data[read])
+            read += 1
+        }
+
         var value: UInt64 = 0
         for byte in bytes {
             value = (value << 8) | UInt64(byte)
@@ -78,7 +74,7 @@ public struct Header {
 
     /// Encode an SFrame Header into its wire format.
     /// - Parameter data: The data to encode into.
-    public func encode(into data: inout Data) throws {
+    public func encode(into data: inout Data) {
         // Determine if KID and CTR need extended encoding
         let needExtendedKID = self.keyId > Self.maxSmallValue
         let needExtendedCTR = self.counter > Self.maxSmallValue
@@ -123,6 +119,7 @@ public struct Header {
         while bytes.first == 0 && bytes.count > 1 {
             bytes.removeFirst()
         }
+        assert(bytes.count <= 8)
         return bytes
     }
 }

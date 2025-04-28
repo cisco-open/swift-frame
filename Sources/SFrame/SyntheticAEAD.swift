@@ -46,11 +46,11 @@ public class SyntheticAEAD {
     ///   - aad: The additional authenticated data.
     ///   - plainText: The plaintext to encrypt.
     /// - Returns: A sealed box containing the encryption result.
-    public func encrypt(nonce: Data, aad: Data, plainText: Data) throws -> SealedBox {
+    public func seal(nonce: Data, aad: Data, plainText: Data) throws -> SealedBox {
         let initialCounter = nonce + Data(count: 4)
-        let cipherText = try self.provider.encryptCtr(key: self.encKey,
-                                                      nonce: initialCounter,
-                                                      plainText: plainText)
+        let cipherText = try self.provider.ctr(key: self.encKey,
+                                               nonce: initialCounter,
+                                               data: plainText)
         let tag = try self.computeTag(nonce: nonce, aad: aad, cipherText: cipherText)
         return SealedDataBox(authTag: tag, encrypted: cipherText, nonceBytes: initialCounter)
     }
@@ -61,13 +61,15 @@ public class SyntheticAEAD {
     ///   - aad: Data to authenticate.
     /// - Returns: The decrypted plaintext.
     /// - Throws: ``SyntheticAEADError.authenticationFailure`` if the authentication fails. Otherwise HMAC failure.
-    public func decrypt(box: SealedBox, aad: Data) throws -> Data {
+    public func open(box: SealedBox, aad: Data) throws -> Data {
         let candidateTag = try self.computeTag(nonce: box.nonceBytes, aad: aad, cipherText: box.encrypted)
         guard try self.provider.constantTimeCompare(lhs: candidateTag, rhs: box.authTag) else {
             throw SyntheticAEADError.authenticationFailure
         }
         let initialCounter = box.nonceBytes + Data(count: 4)
-        return try self.provider.decryptCtr(key: self.encKey, nonce: initialCounter, cipherText: box.encrypted)
+        return try self.provider.ctr(key: self.encKey,
+                                     nonce: initialCounter,
+                                     data: box.encrypted)
     }
 
     private func computeTag(nonce: Data, aad: Data, cipherText: Data) throws -> Data {
