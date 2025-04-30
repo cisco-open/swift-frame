@@ -5,31 +5,26 @@
 import Crypto
 import Foundation
 
-private protocol KeyContext {
-    var key: SymmetricKey { get }
-    var salt: ContiguousBytes { get }
-}
+internal struct SendKeyContext {
+    internal let key: SymmetricKey
+    internal let salt: ContiguousBytes
+    internal private(set) var counter: Counter
 
-private struct SendKeyContext: KeyContext {
-    let key: SymmetricKey
-    let salt: ContiguousBytes
-    private(set) var counter: Counter
-
-    mutating func increment() {
+    internal mutating func increment() {
         self.counter += 1
     }
 }
 
-private struct ReceiveKeyContext: KeyContext {
-    let key: SymmetricKey
-    let salt: ContiguousBytes
+internal struct ReceiveKeyContext {
+    internal let key: SymmetricKey
+    internal let salt: ContiguousBytes
 }
 
 /// SFrame Implementation.
 public class Context: SFrame {
-    private var sendKeys: [KeyId: SendKeyContext] = [:]
-    private var recvKeys: [KeyId: ReceiveKeyContext] = [:]
-    private let crypto: any CryptoProvider
+    internal var sendKeys: [KeyId: SendKeyContext] = [:]
+    internal var recvKeys: [KeyId: ReceiveKeyContext] = [:]
+    internal let crypto: any CryptoProvider
 
     public init(provider: some CryptoProvider) {
         self.crypto = provider
