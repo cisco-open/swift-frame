@@ -10,7 +10,11 @@ import PackageDescription
 public let package = Package(
     name: "swift-sframe",
     platforms: [
-        .macOS(.v12)
+        .macOS(.v12),
+        .macCatalyst(.v14),
+        .iOS(.v14),
+        .watchOS(.v7),
+        .visionOS(.v1)
     ],
     products: [
         .library(
