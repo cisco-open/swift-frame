@@ -13,6 +13,8 @@ public enum MLSError: Error {
     case senderOverflow
     /// Context ID was greater than the maximum allowed.
     case contextOverflow
+    /// Epoch bits must be 0 < x < 64.
+    case badEpochBits
 }
 
 /// Provides an interface to utilize SFrame with MLS keying.
@@ -31,9 +33,9 @@ public class MLS {
         /// The secret material for this epoch.
         let sframeEpochSecret: SymmetricKey
         /// Number of bits allocated for the sender ID.
-        let senderBits: UInt
+        let senderBits: UInt8
         /// Number of bits allocated for the context ID.
-        let contextBits: UInt
+        let contextBits: UInt8
         /// Maximum allowed sender ID.
         let maxSenderId: UInt64
         /// Maximum allowed context ID.
@@ -45,17 +47,20 @@ public class MLS {
         init(provider: CryptoProvider,
              fullEpoch: EpochID,
              sframeEpochSecret: SymmetricKey,
-             epochBits: UInt,
-             senderBits: UInt?) throws {
+             epochBits: UInt8,
+             senderBits: Int?) throws {
             self.provider = provider
+            precondition(epochBits > 0)
+            precondition(epochBits <= 63)
 
             // Resolve sender bits.
-            let keyIdBits: UInt = 64
+            let keyIdBits: UInt8 = 64
             if let senderBits {
                 guard senderBits <= keyIdBits - epochBits else {
                     throw SFrameError.badParameter
                 }
-                self.senderBits = senderBits
+                precondition(senderBits > 0 && senderBits <= 64 - epochBits)
+                self.senderBits = UInt8(senderBits)
             } else {
                 self.senderBits = keyIdBits - epochBits
             }
@@ -63,9 +68,9 @@ public class MLS {
             self.fullEpoch = fullEpoch
             self.sframeEpochSecret = sframeEpochSecret
             self.contextBits = keyIdBits - self.senderBits - epochBits
-            let one: UInt64 = 1
-            self.maxSenderId = (one << (self.senderBits + 1)) - 1
-            self.maxContextId = (one << (self.contextBits + 1)) - 1
+            precondition(self.contextBits >= 0 && self.contextBits <= 62)
+            self.maxSenderId = .max(Int(self.senderBits))
+            self.maxContextId = .max(Int(self.contextBits))
         }
 
         /// Derive a base key for a specific sender.
@@ -80,7 +85,7 @@ public class MLS {
     }
 
     /// Number of bits used for the epoch in the key ID.
-    private let epochBits: UInt
+    private let epochBits: UInt8
 
     /// Mask to extract the epoch portion of a key ID.
     private let epochMask: UInt64
@@ -95,11 +100,22 @@ public class MLS {
     /// Initialize a new MLS context.
     /// - Parameters:
     ///   - provider: The crypto provider to use.
-    ///   - epochBits: Number of bits to allocate for the epoch in the key ID.
-    public init(provider: some CryptoProvider, epochBits: UInt) {
-        self.epochBits = epochBits
-        self.epochMask = (UInt64(1) << epochBits) - 1
-        self.epochCache.reserveCapacity(1 << epochBits)
+    ///   - epochBits: Number of bits (1..63) to allocate for the epoch in the key ID.
+    ///   - reserveCapacity: Whether to reserve capacity for the epoch cache. For large epoch,
+    ///                    this may not be desirable.
+    /// - Throws: ``MLSError.badEpochBits`` if the epoch bit size are invalid.
+    public init(provider: some CryptoProvider, epochBits: Int, reserveCapacity: Bool = true) throws(MLSError) {
+        guard epochBits < EpochID.bitWidth,
+              epochBits > 0 else {
+            throw MLSError.badEpochBits
+        }
+        self.epochBits = UInt8(epochBits)
+        let capacity = UInt64.max(epochBits)
+        self.epochMask = capacity
+        if reserveCapacity {
+            let reserve = Int(min(capacity, UInt64(Int.max)))
+            self.epochCache.reserveCapacity(reserve)
+        }
         self.provider = provider
         self.sframe = .init(provider: provider)
     }
@@ -109,7 +125,7 @@ public class MLS {
     ///  - epochId: The epoch identifier.
     ///  - sframeEpochSecret: The secret material for this epoch.
     ///  - senderBits: Optional number of bits to allocate for the sender ID.
-    public func addEpoch(epochId: EpochID, sframeEpochSecret: SymmetricKey, senderBits: UInt? = nil) throws {
+    public func addEpoch(epochId: EpochID, sframeEpochSecret: SymmetricKey, senderBits: Int? = nil) throws {
         let index = epochId & UInt64(self.epochMask)
         if self.epochCache[index] != nil {
             self.purgeEpoch(epochId: index)
@@ -240,5 +256,15 @@ public class MLS {
 
         // Unprotect.
         return try self.sframe.unprotect(ciphertext: ciphertext, metadata: metadata)
+    }
+}
+
+extension FixedWidthInteger {
+    /// Get the max value for the provided number of bits
+    /// - Parameter bits: The number of bits.
+    /// - Returns: The maximum value for the provided number of bits.
+    internal static func max(_ bits: Int) -> Self {
+        let one = Self(1)
+        return (one << bits) &- one
     }
 }

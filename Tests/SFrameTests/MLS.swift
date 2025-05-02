@@ -4,7 +4,7 @@
 
 import Crypto
 import Foundation
-import SFrame
+@testable import SFrame
 import Testing
 
 private struct MLSTests {
@@ -15,7 +15,7 @@ private struct MLSTests {
         guard let suite = registry[suite] else {
             throw TestError.unsupportedCipherSuite
         }
-        let epochBits: UInt = 2
+        let epochBits = 2
         let testEpochs: MLS.EpochID = 1 << (epochBits + 1)
         let epochRounds = 10
         let metadata = Data("00010203".utf8)
@@ -24,8 +24,8 @@ private struct MLSTests {
         let senderIdB = MLS.SenderID(0xA1A1A1A1)
 
         let provider = SwiftCryptoProvider(suite: suite)
-        let memberA = MLS(provider: provider, epochBits: epochBits)
-        let memberB = MLS(provider: provider, epochBits: epochBits)
+        let memberA = try MLS(provider: provider, epochBits: epochBits)
+        let memberB = try MLS(provider: provider, epochBits: epochBits)
         for epochId in 0..<testEpochs {
             let sframeEpochSecret = SymmetricKey(data: Data(repeating: UInt8(epochId), count: 8))
             try memberA.addEpoch(epochId: epochId,
@@ -61,20 +61,20 @@ private struct MLSTests {
         }
         let provider = SwiftCryptoProvider(suite: suite)
 
-        let epochBits: UInt = 4
+        let epochBits = 4
         let testEpochs: MLS.EpochID = 1 << (epochBits + 1)
         let epochRounds = 10
         let metadata = Data("00010203".utf8)
         let plaintext = Data("04050607".utf8)
         let senderIdA = MLS.SenderID(0xA0A0A0A0)
         let senderIdB = MLS.SenderID(0xA1A1A1A1)
-        let senderIdBits: UInt = 32
+        let senderIdBits = 32
         let contextId0: UInt64 = 0xB0B0
         let contextId1: UInt64 = 0xB1B1
 
-        let memberA0 = MLS(provider: provider, epochBits: epochBits)
-        let memberA1 = MLS(provider: provider, epochBits: epochBits)
-        let memberB = MLS(provider: provider, epochBits: epochBits)
+        let memberA0 = try MLS(provider: provider, epochBits: epochBits)
+        let memberA1 = try MLS(provider: provider, epochBits: epochBits)
+        let memberB = try MLS(provider: provider, epochBits: epochBits)
         for epochId in 0..<testEpochs {
             let sframeEpochSecret = SymmetricKey(data: Data(repeating: UInt8(epochId), count: 8))
             try memberA0.addEpoch(epochId: epochId,
@@ -126,15 +126,15 @@ private struct MLSTests {
         }
         let provider = SwiftCryptoProvider(suite: suite)
 
-        let epochBits: UInt = 2
+        let epochBits = 2
         let metadata = Data("00010203".utf8)
         let plaintext = Data("04050607".utf8)
         let senderIdA = MLS.SenderID(0xA0A0A0A0)
         let sframeEpochSecret1 = SymmetricKey(data: Data(repeating: 1, count: 32))
         let sframeEpochSecret2 = SymmetricKey(data: Data(repeating: 2, count: 32))
 
-        let memberA = MLS(provider: provider, epochBits: epochBits)
-        let memberB = MLS(provider: provider, epochBits: epochBits)
+        let memberA = try MLS(provider: provider, epochBits: epochBits)
+        let memberB = try MLS(provider: provider, epochBits: epochBits)
 
         // Install epoch 1 and create a ciphertext
         let epochId1: MLS.EpochID = 1
@@ -176,6 +176,89 @@ private struct MLSTests {
         let decryptedAB2 = try memberB.unprotect(ciphertext: encryptedAB2,
                                                  metadata: metadata)
         #expect(plaintext == decryptedAB2)
+    }
+
+    @Test("Epoch Bits")
+    func testEpochBits() throws {
+        guard let suite = registry[.aes_128_gcm_sha256_128] else {
+            throw TestError.unsupportedCipherSuite
+        }
+        let provider = SwiftCryptoProvider(suite: suite)
+        let secret = SymmetricKey(size: .bits128)
+
+        // Too small.
+        #expect(throws: MLSError.badEpochBits) {
+            try MLS(provider: provider, epochBits: 0, reserveCapacity: false)
+        }
+
+        // Too big.
+        #expect(throws: MLSError.badEpochBits) {
+            try MLS(provider: provider, epochBits: MLS.EpochID.bitWidth, reserveCapacity: false)
+        }
+
+        // Just right.
+        for epochBits in 1..<MLS.EpochID.bitWidth {
+            let mls = try MLS(provider: provider, epochBits: epochBits, reserveCapacity: false)
+            let maxEpochId = MLS.EpochID.max(epochBits)
+            try mls.addEpoch(epochId: maxEpochId, sframeEpochSecret: secret)
+            precondition(UInt64.max == .max(UInt64.bitWidth))
+            let maxSenderId = MLS.SenderID.max(KeyId.bitWidth - epochBits)
+            _ = try mls.protect(epochId: maxEpochId,
+                                senderId: maxSenderId,
+                                plaintext: .init())
+        }
+    }
+
+    @Test("Sender ID Overflow Protection")
+    func testSenderIdOverflow() throws {
+        guard let suite = registry[.aes_128_gcm_sha256_128] else {
+            throw TestError.unsupportedCipherSuite
+        }
+        let provider = SwiftCryptoProvider(suite: suite)
+        let secret = SymmetricKey(size: .bits128)
+        for epochBits in 1..<MLS.EpochID.bitWidth {
+            let senderBits = MLS.EpochID.bitWidth - epochBits
+            let mls = try MLS(provider: provider, epochBits: epochBits, reserveCapacity: false)
+            try mls.addEpoch(epochId: 0, sframeEpochSecret: secret)
+            let maxSender = MLS.SenderID.max(senderBits)
+            // Don't overflow.
+            _ = try mls.protect(epochId: 0, senderId: maxSender, plaintext: .init())
+            // Overflow.
+            #expect(throws: MLSError.senderOverflow) {
+                _ = try mls.protect(epochId: 0, senderId: maxSender + 1, plaintext: .init())
+            }
+        }
+    }
+
+    @Test("Context ID Overflow Protections")
+    func testContextIdOverflow() throws {
+        guard let suite = registry[.aes_128_gcm_sha256_128] else {
+            throw TestError.unsupportedCipherSuite
+        }
+        let provider = SwiftCryptoProvider(suite: suite)
+        let secret = SymmetricKey(size: .bits128)
+        for epochBits in 1..<MLS.EpochID.bitWidth {
+            let mls = try MLS(provider: provider, epochBits: epochBits, reserveCapacity: false)
+            let senderBits = KeyId.bitWidth - epochBits
+            try mls.addEpoch(epochId: 0, sframeEpochSecret: secret, senderBits: KeyId.bitWidth - epochBits)
+            let maxSender = MLS.SenderID.max(senderBits)
+            // Don't overflow.
+            let contextBits = KeyId.bitWidth - epochBits - senderBits
+            let maxContext = MLS.ContextID.max(contextBits)
+            _ = try mls.protect(epochId: 0,
+                                senderId: maxSender,
+                                plaintext: .init(),
+                                metadata: nil,
+                                contextId: maxContext)
+            // Overflow.
+            #expect(throws: MLSError.contextOverflow) {
+                _ = try mls.protect(epochId: 0,
+                                    senderId: maxSender,
+                                    plaintext: .init(),
+                                    metadata: nil,
+                                    contextId: maxContext + 1)
+            }
+        }
     }
 }
 
