@@ -110,10 +110,12 @@ public class MLS {
             throw MLSError.badEpochBits
         }
         self.epochBits = UInt8(epochBits)
-        let capacity = UInt64.max(epochBits)
-        self.epochMask = capacity
+        let maxEpochs = EpochID.max(epochBits)
+        self.epochMask = maxEpochs
         if reserveCapacity {
-            let reserve = Int(min(capacity, UInt64(Int.max)))
+            let max = maxEpochs == .max ? .max : maxEpochs + 1
+            precondition(EpochID.max > Int.max)
+            let reserve = Int(min(max, EpochID(Int.max)))
             self.epochCache.reserveCapacity(reserve)
         }
         self.provider = provider
