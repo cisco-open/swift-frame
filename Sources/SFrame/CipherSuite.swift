@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import Crypto
+
 // swiftlint:disable identifier_name
 
 /// SFrame cipher suites by registered identifier.
@@ -32,9 +34,9 @@ public struct CipherSuite: Sendable {
 
 /// SFrame Cipher Suite Registry.
 public let registry: [CipherSuites: CipherSuite] = [
-    .aes_128_ctr_hmac_sha256_80: .init(identifier: 1, nh: 32, nka: 16, nk: 48, nn: 12, nt: 10),
-    .aes_128_ctr_hmac_sha256_64: .init(identifier: 2, nh: 32, nka: 16, nk: 48, nn: 12, nt: 8),
-    .aes_128_ctr_hmac_sha256_32: .init(identifier: 3, nh: 32, nka: 16, nk: 48, nn: 12, nt: 4),
-    .aes_128_gcm_sha256_128: .init(identifier: 4, nh: 64, nka: nil, nk: 16, nn: 12, nt: 16),
-    .aes_256_gcm_sha512_128: .init(identifier: 5, nh: 64, nka: nil, nk: 32, nn: 12, nt: 16)
+    .aes_128_ctr_hmac_sha256_80: .init(identifier: 1, nh: SHA256.byteCount, nka: 16, nk: 48, nn: 12, nt: 10),
+    .aes_128_ctr_hmac_sha256_64: .init(identifier: 2, nh: SHA256.byteCount, nka: 16, nk: 48, nn: 12, nt: 8),
+    .aes_128_ctr_hmac_sha256_32: .init(identifier: 3, nh: SHA256.byteCount, nka: 16, nk: 48, nn: 12, nt: 4),
+    .aes_128_gcm_sha256_128: .init(identifier: 4, nh: SHA256.byteCount, nka: nil, nk: 16, nn: 12, nt: 16),
+    .aes_256_gcm_sha512_128: .init(identifier: 5, nh: SHA512.byteCount, nka: nil, nk: 32, nn: 12, nt: 16)
 ]
