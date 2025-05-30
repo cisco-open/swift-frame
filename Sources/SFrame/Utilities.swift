@@ -4,15 +4,22 @@
 
 import Foundation
 
-public enum DataError: Error {
-    case lengthMismatch
-}
-
 // SealedBox implementation.
 internal struct SealedDataBox: SealedBox {
     internal let authTag: Data
     internal let encrypted: Data
     internal let nonceBytes: Data
+}
+
+public enum DataError: Error {
+    case lengthMismatch
+
+    public var localizedDescription: String {
+        switch self {
+        case .lengthMismatch:
+            return "XOR requires buffers of equal length."
+        }
+    }
 }
 
 extension Data {

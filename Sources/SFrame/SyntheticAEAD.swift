@@ -9,6 +9,19 @@ public enum SyntheticAEADError: Error {
     case missingKeySize
     case authenticationFailure
     case badKeySize
+
+    public var localizedDescription: String {
+        switch self {
+        case .missingKeySize:
+            return "The cipher suite does not specify a key size."
+
+        case .authenticationFailure:
+            return "Authentication failed."
+
+        case .badKeySize:
+            return "The provided key size does not match the cipher suite requirements."
+        }
+    }
 }
 
 /// SFrame AES-CTR with SHA2 implementation.

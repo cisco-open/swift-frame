@@ -76,4 +76,11 @@ public protocol CryptoProvider {
 public enum CryptoProviderError: Error {
     /// This provider does not support the requested cipher suite.
     case unsupportedCipherSuite
+
+    public var localizedDescription: String {
+        switch self {
+        case .unsupportedCipherSuite:
+            return "This provider does not support the requested cipher suite."
+        }
+    }
 }

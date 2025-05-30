@@ -15,6 +15,22 @@ public enum MLSError: Error {
     case contextOverflow
     /// Epoch bits must be 0 < x < 64.
     case badEpochBits
+
+    public var localizedDescription: String {
+        switch self {
+        case .unknownEpoch:
+            return "Unknown epoch."
+
+        case .senderOverflow:
+            return "Sender ID exceeds maximum allowed."
+
+        case .contextOverflow:
+            return "Context ID exceeds maximum allowed."
+
+        case .badEpochBits:
+            return "Epoch bits must be between 1 and 63."
+        }
+    }
 }
 
 /// Provides an interface to utilize SFrame with MLS keying.
