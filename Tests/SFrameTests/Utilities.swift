@@ -176,6 +176,16 @@ internal func hexToData(_ hex: String) -> Data {
 internal enum TestError: Error {
     case missingVectors
     case unsupportedCipherSuite
+
+    internal var localizedDescription: String {
+        switch self {
+        case .missingVectors:
+            return "Test vectors are missing."
+
+        case .unsupportedCipherSuite:
+            return "The cipher suite is not supported."
+        }
+    }
 }
 
 internal func loadTestVectors() throws -> TestVectors {

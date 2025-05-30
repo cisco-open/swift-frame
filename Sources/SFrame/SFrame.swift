@@ -17,7 +17,22 @@ public enum SFrameError: Error {
     case existingKey
     case badParameter
     case malformedCipherText
-    case keyMisuse
+
+    public var localizedDescription: String {
+        switch self {
+        case .missingKey:
+            return "The required key is missing."
+
+        case .existingKey:
+            return "This key already exists."
+
+        case .badParameter:
+            return "A bit size parameter was invalid."
+
+        case .malformedCipherText:
+            return "The ciphertext is malformed."
+        }
+    }
 }
 
 /// The operation this key is to be used for.
